@@ -20,86 +20,61 @@
 #ifndef _pico_swdloader_h
 #define _pico_swdloader_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 
 #include "gpiopin.h"
 
-class CSWDLoader /// Loads a program via the Serial Wire Debug interface to the
-                 /// RP2040
-{
-  public:
-    const static unsigned DefaultClockRateKHz =
-        400; ///< Default clock rate in KHz
+struct CSWDLoader {
+    unsigned m_bResetAvailable;
+    unsigned m_nDelayNanos;
+    struct CGPIOPin m_ResetPin;
+    struct CGPIOPin m_ClockPin;
+    struct CGPIOPin m_DataPin;
+};
 
-  public:
     /// \param nClockPin GPIO pin to which SWCLK is connected
     /// \param nDataPin GPIO pin to which SWDIO is connected
     /// \param nResetPin Optional GPIO pin to which RESET (RUN) is connected
     /// (active LOW) \param nClockRateKHz Requested interface clock rate in KHz
     /// \note GPIO pin numbers are SoC number, not header positions.
     /// \note The actual clock rate may be smaller than the requested.
-    CSWDLoader(unsigned nClockPin, unsigned nDataPin, unsigned nResetPin = 0,
-               unsigned nClockRateKHz = DefaultClockRateKHz);
+int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
+                  unsigned nDataPin, unsigned nResetPin,
+                  unsigned nClockRateKHz);
 
-    ~CSWDLoader(void);
+void SWDDeInitialize(struct CSWDLoader* loader);
 
-    /// \brief Reset RP2040 and attach to SW debug port
-    /// \return Operation successful?
-    bool Initialize(void);
+/// \brief Halt the RP2040, load a program image and start it
+/// \param pProgram Pointer to program image in memory
+/// \param nProgSize Size of the program image (must be a multiple of 4)
+/// \param nAddress Load and start address of the program image
+int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
+            uint32_t nAddress);
 
-    /// \brief Halt the RP2040, load a program image and start it
-    /// \param pProgram Pointer to program image in memory
-    /// \param nProgSize Size of the program image (must be a multiple of 4)
-    /// \param nAddress Load and start address of the program image
-    bool Load(const void* pProgram, size_t nProgSize, uint32_t nAddress);
+/// \brief Halt the RP2040
+/// \return Operation successful?
+int SWDHalt(struct CSWDLoader* loader);
 
-  public:
-    /// \brief Halt the RP2040
-    /// \return Operation successful?
-    bool Halt(void);
+/// \brief Load a chunk of a program image (or entire program)
+/// \param pChunk Pointer to the chunk in memory
+/// \param nChunkSize Size of the chunk (must be a multiple of 4)
+/// \param nAddress Load address of the chunk
+/// \return Operation successful?
+int SWDLoadChunk(struct CSWDLoader* loader, const void* pChunk,
+                 size_t nChunkSize, uint32_t nAddress);
 
-    /// \brief Load a chunk of a program image (or entire program)
-    /// \param pChunk Pointer to the chunk in memory
-    /// \param nChunkSize Size of the chunk (must be a multiple of 4)
-    /// \param nAddress Load address of the chunk
-    /// \return Operation successful?
-    bool LoadChunk(const void* pChunk, size_t nChunkSize, uint32_t nAddress);
+/// \brief Start program image
+/// \param nAddress Start address of the program image
+/// \return Operation successful?
+int SWDStart(struct CSWDLoader* loader, uint32_t nAddress);
 
-    /// \brief Start program image
-    /// \param nAddress Start address of the program image
-    /// \return Operation successful?
-    bool Start(uint32_t nAddress);
-
-  private:
-    bool PowerOn(void);
-
-    bool WriteMem(uint32_t nAddress, uint32_t nData);
-    bool ReadMem(uint32_t nAddress, uint32_t* pData);
-
-    bool WriteData(uint8_t uchRequest, uint32_t nData);
-    bool ReadData(uint8_t uchRequest, uint32_t* pData);
-
-    void SelectTarget(uint32_t nCPUAPID, uint8_t uchInstanceID);
-
-    void BeginTransaction(void);
-    void EndTransaction(void);
-
-    void Dormant2SWD(void);
-    void LineReset(void);
-    void WriteIdle(void);
-
-    void WriteBits(uint32_t nBits, unsigned nBitCount);
-    uint32_t ReadBits(unsigned nBitCount);
-    void WriteClock(void);
-
-  private:
-    unsigned m_bResetAvailable;
-    unsigned m_nDelayNanos;
-
-    struct CGPIOPin m_ResetPin;
-    struct CGPIOPin m_ClockPin;
-    struct CGPIOPin m_DataPin;
-};
+#ifdef __cplusplus
+}
+#endif
 
 #endif

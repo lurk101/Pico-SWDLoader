@@ -54,9 +54,12 @@ int main(int ac, char* av[]) {
     }
     close(fd);
     gpioInitialise();
-    CSWDLoader loader(swclk_gpio, swdio_gpio, RESET_PIN, 1000);
-    loader.Initialize();
-    if (!loader.Load(image, f_size, RP2040_RAM_BASE)) {
+    struct CSWDLoader loader;
+    if (!SWDInitialize(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
+        fprintf(stderr, "Firmware init failed\n");
+        exit(-1);
+    }
+    if (!SWDLoad(&loader, image, f_size, RP2040_RAM_BASE)) {
         fprintf(stderr, "Firmware load failed\n");
         exit(-1);
     }

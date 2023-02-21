@@ -9,8 +9,8 @@ swdloader: main.o swdloader.o gpiopin.o
 main.o: main.cpp swdloader.h
 	$(CXX) $(CFLAGS) -c main.cpp
  
-swdloader.o: swdloader.cpp swdloader.h gpiopin.h
-	$(CXX) $(CFLAGS) -c swdloader.cpp
+swdloader.o: swdloader.c swdloader.h gpiopin.h
+	$(CC) $(CFLAGS) -c swdloader.c
  
 gpiopin.o: gpiopin.c gpiopin.h
 	$(CC) $(CFLAGS) -c gpiopin.c
