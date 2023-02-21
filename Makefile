@@ -12,8 +12,8 @@ main.o: main.cpp swdloader.h
 swdloader.o: swdloader.cpp swdloader.h gpiopin.h
 	$(CXX) $(CFLAGS) -c swdloader.cpp
  
-gpiopin.o: gpiopin.cpp gpiopin.h
-	$(CXX) $(CFLAGS) -c gpiopin.cpp
+gpiopin.o: gpiopin.c gpiopin.h
+	$(CC) $(CFLAGS) -c gpiopin.c
 
 clean:
 	rm -rf *.o swdloader

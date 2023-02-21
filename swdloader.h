@@ -97,9 +97,9 @@ class CSWDLoader /// Loads a program via the Serial Wire Debug interface to the
     unsigned m_bResetAvailable;
     unsigned m_nDelayNanos;
 
-    CGPIOPin m_ResetPin;
-    CGPIOPin m_ClockPin;
-    CGPIOPin m_DataPin;
+    struct CGPIOPin m_ResetPin;
+    struct CGPIOPin m_ClockPin;
+    struct CGPIOPin m_DataPin;
 };
 
 #endif

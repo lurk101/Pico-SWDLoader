@@ -1,5 +1,5 @@
 //
-// gpiopin.cpp
+// gpiopin.c
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014-2020  R. Stange <rsta2@o2online.de>
@@ -17,25 +17,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include <cassert>
-
+#include <assert.h>
 #include <pigpio.h>
 
 #include "gpiopin.h"
 
-CGPIOPin::CGPIOPin(void) : m_nPin(GPIO_PINS), m_Mode(GPIOModeUnknown) {}
-
-CGPIOPin::CGPIOPin(unsigned nPin, TGPIOMode Mode)
-    : m_nPin(GPIO_PINS), m_Mode(GPIOModeUnknown) {
-    AssignPin(nPin);
-    SetMode(Mode, true);
+void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode) {
+    pin->m_nPin = GPIO_PINS;
+    pin->m_Mode = GPIOModeUnknown;
+    AssignPin(pin, nPin);
+    SetModePin(pin, Mode, 1);
 }
 
-CGPIOPin::~CGPIOPin(void) { m_nPin = GPIO_PINS; }
-
-void CGPIOPin::AssignPin(unsigned nPin) {
-    m_nPin = nPin;
-    assert(m_nPin < GPIO_PINS);
+void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
+    pin->m_nPin = nPin;
+    assert(pin->m_nPin < GPIO_PINS);
 }
 
 //    GPIOModeInput,
@@ -43,41 +39,41 @@ void CGPIOPin::AssignPin(unsigned nPin) {
 //    GPIOModeInputPullUp,
 //    GPIOModeInputPullDown,
 
-void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
+void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
     assert(Mode < GPIOModeUnknown);
-    m_Mode = Mode;
+    pin->m_Mode = Mode;
 
-    if (bInitPin && m_Mode == GPIOModeOutput)
-        SetPullMode(GPIOPullModeOff);
+    if (bInitPin && pin->m_Mode == GPIOModeOutput)
+        SetPullModePin(pin, GPIOPullModeOff);
 
-    switch (m_Mode) {
+    switch (pin->m_Mode) {
     case GPIOModeInput:
     case GPIOModeInputPullUp:
     case GPIOModeInputPullDown:
-        gpioSetMode(m_nPin, PI_INPUT);
+        gpioSetMode(pin->m_nPin, PI_INPUT);
         break;
     case GPIOModeOutput:
-        gpioSetMode(m_nPin, PI_OUTPUT);
+        gpioSetMode(pin->m_nPin, PI_OUTPUT);
     default:
         break;
     }
 
     if (bInitPin)
-        switch (m_Mode) {
+        switch (pin->m_Mode) {
         case GPIOModeInput:
-            SetPullMode(GPIOPullModeOff);
+            SetPullModePin(pin, GPIOPullModeOff);
             break;
 
         case GPIOModeOutput:
-            Write(LOW);
+            WritePin(pin, LOW);
             break;
 
         case GPIOModeInputPullUp:
-            SetPullMode(GPIOPullModeUp);
+            SetPullModePin(pin, GPIOPullModeUp);
             break;
 
         case GPIOModeInputPullDown:
-            SetPullMode(GPIOPullModeDown);
+            SetPullModePin(pin, GPIOPullModeDown);
             break;
 
         default:
@@ -85,32 +81,32 @@ void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
         }
 }
 
-void CGPIOPin::Write(unsigned nValue) {
-    assert(m_nPin < GPIO_PINS);
-    assert(m_Mode < GPIOModeUnknown);
+void WritePin(struct CGPIOPin* pin, unsigned nValue) {
+    assert(pin->m_nPin < GPIO_PINS);
+    assert(pin->m_Mode < GPIOModeUnknown);
     assert(nValue == LOW || nValue == HIGH);
-    gpioWrite(m_nPin, nValue == LOW ? 0 : 1);
+    gpioWrite(pin->m_nPin, nValue == LOW ? 0 : 1);
 }
 
-unsigned CGPIOPin::Read(void) const {
-    assert(m_nPin < GPIO_PINS);
-    assert(m_Mode == GPIOModeInput || m_Mode == GPIOModeInputPullUp ||
-           m_Mode == GPIOModeInputPullDown);
-    return gpioRead(m_nPin) ? HIGH : LOW;
+unsigned ReadPin(struct CGPIOPin* pin) {
+    assert(pin->m_nPin < GPIO_PINS);
+    assert(pin->m_Mode == GPIOModeInput || pin->m_Mode == GPIOModeInputPullUp ||
+           pin->m_Mode == GPIOModeInputPullDown);
+    return gpioRead(pin->m_nPin) ? HIGH : LOW;
 }
 
-void CGPIOPin::SetPullMode(TGPIOPullMode Mode) {
+void SetPullModePin(struct CGPIOPin* pin, enum TGPIOPullMode Mode) {
     switch (Mode) {
     case GPIOPullModeOff:
-        gpioSetPullUpDown(m_nPin, PI_PUD_OFF);
+        gpioSetPullUpDown(pin->m_nPin, PI_PUD_OFF);
         break;
 
     case GPIOPullModeUp:
-        gpioSetPullUpDown(m_nPin, PI_PUD_UP);
+        gpioSetPullUpDown(pin->m_nPin, PI_PUD_UP);
         break;
 
     case GPIOPullModeDown:
-        gpioSetPullUpDown(m_nPin, PI_PUD_DOWN);
+        gpioSetPullUpDown(pin->m_nPin, PI_PUD_DOWN);
         break;
 
     default:

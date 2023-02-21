@@ -20,9 +20,15 @@
 #ifndef _circle_gpiopin_h
 #define _circle_gpiopin_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #define GPIO_PINS 54
+#define LOW 0
+#define HIGH 1
 
 enum TGPIOMode {
     GPIOModeInput,
@@ -39,41 +45,36 @@ enum TGPIOPullMode {
     GPIOPullModeUnknown
 };
 
-class CGPIOPin /// Encapsulates a GPIO pin
-{
-  public:
-    /// \brief Default constructor
-    CGPIOPin(void);
+struct CGPIOPin {
+    unsigned m_nPin;
+    enum TGPIOMode m_Mode;
+};
 
     /// \param nPin Pin number, can be physical (Broadcom) number or
     /// TGPIOVirtualPin \param Mode Pin mode to be set \param pManager Is only
     /// required for using interrupts (IRQ)
-    CGPIOPin(unsigned nPin, TGPIOMode Mode);
-    virtual ~CGPIOPin(void);
+void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode);
 
-    /// \param nPin Pin number, can be physical (Broadcom) number or
-    /// TGPIOVirtualPin \note To be used together with the default constructor
-    /// and SetMode()
-    void AssignPin(unsigned nPin);
+/// \param nPin Pin number, can be physical (Broadcom) number or
+/// TGPIOVirtualPin \note To be used together with the default constructor
+/// and SetMode()
+void AssignPin(struct CGPIOPin* pin, unsigned nPin);
 
-    /// \param Mode Pin mode to be set
-    /// \param bInitPin Also init pullup/down mode and output level
-    void SetMode(TGPIOMode Mode, bool bInitPin = true);
+/// \param Mode Pin mode to be set
+/// \param bInitPin Also init pullup/down mode and output level
+void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin);
 
-    /// \param Mode Pull mode to be set
-    void SetPullMode(TGPIOPullMode Mode);
+/// \param Mode Pull mode to be set
+void SetPullModePin(struct CGPIOPin* pin, enum TGPIOPullMode Mode);
 
-    /// \param nValue Value to be written to the pin (LOW or HIGH)
-    void Write(unsigned nValue);
-    /// \return Value read from pin (LOW or HIGH)
-    unsigned Read(void) const;
+/// \param nValue Value to be written to the pin (LOW or HIGH)
+void WritePin(struct CGPIOPin* pin, unsigned nValue);
 
-#define LOW 0
-#define HIGH 1
+/// \return Value read from pin (LOW or HIGH)
+unsigned ReadPin(struct CGPIOPin* pin);
 
-  private:
-    unsigned m_nPin;
-    TGPIOMode m_Mode;
-};
+#ifdef __cplusplus
+}
+#endif
 
 #endif

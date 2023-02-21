@@ -106,32 +106,33 @@ using namespace std;
 CSWDLoader::CSWDLoader(unsigned nClockPin, unsigned nDataPin,
                        unsigned nResetPin, unsigned nClockRateKHz)
     : m_bResetAvailable(nResetPin != 0),
-      m_nDelayNanos(1000000U / nClockRateKHz / 2),
-      m_ClockPin(nClockPin, GPIOModeOutput),
-      m_DataPin(nDataPin, GPIOModeOutput) {
+      m_nDelayNanos(1000000U / nClockRateKHz / 2) {
+    InitPin(&m_ClockPin, nClockPin, GPIOModeOutput);
+    InitPin(&m_DataPin, nDataPin, GPIOModeOutput);
     if (m_bResetAvailable) {
-        m_ResetPin.AssignPin(nResetPin);
+        InitPin(&m_ResetPin, nResetPin, GPIOModeOutput);
+        AssignPin(&m_ResetPin, nResetPin);
 
-        m_ResetPin.SetMode(GPIOModeInput, false); // suppress LOW spike
-        m_ResetPin.Write(HIGH);
-        m_ResetPin.SetMode(GPIOModeOutput, false);
+        SetModePin(&m_ResetPin, GPIOModeInput, false); // suppress LOW spike
+        WritePin(&m_ResetPin, HIGH);
+        SetModePin(&m_ResetPin, GPIOModeOutput, false);
     }
-    m_DataPin.SetPullMode(GPIOPullModeUp);
+    SetPullModePin(&m_DataPin, GPIOPullModeUp);
 }
 
-CSWDLoader::~CSWDLoader(void) {
-    m_DataPin.SetMode(GPIOModeInput);
-    m_ClockPin.SetMode(GPIOModeInput);
+CSWDLoader::~CSWDLoader() {
+    SetModePin(&m_DataPin, GPIOModeInput, 1);
+    SetModePin(&m_ClockPin, GPIOModeInput, 1);
     if (m_bResetAvailable)
-        m_ResetPin.SetMode(GPIOModeInput);
+        SetModePin(&m_ResetPin, GPIOModeInput, 1);
 }
 
 bool CSWDLoader::Initialize(void) {
     if (m_bResetAvailable) {
         this_thread::sleep_for(chrono::milliseconds(10));
-        m_ResetPin.Write(LOW);
+        WritePin(&m_ResetPin, LOW);
         this_thread::sleep_for(chrono::milliseconds(10));
-        m_ResetPin.Write(HIGH);
+        WritePin(&m_ResetPin, HIGH);
         this_thread::sleep_for(chrono::milliseconds(10));
     }
     BeginTransaction();
@@ -353,26 +354,26 @@ void CSWDLoader::LineReset(void) {
 
 void CSWDLoader::WriteIdle(void) {
     WriteBits(0, 8);
-    m_ClockPin.Write(LOW);
-    m_DataPin.SetMode(GPIOModeOutput, false);
-    m_DataPin.Write(LOW);
+    WritePin(&m_ClockPin, LOW);
+    SetModePin(&m_DataPin, GPIOModeOutput, false);
+    WritePin(&m_DataPin, LOW);
 }
 
 void CSWDLoader::WriteBits(uint32_t nBits, unsigned nBitCount) {
-    m_DataPin.SetMode(GPIOModeOutput, false);
+    SetModePin(&m_DataPin, GPIOModeOutput, false);
     while (nBitCount--) {
-        m_DataPin.Write(nBits & 1);
+        WritePin(&m_DataPin, nBits & 1);
         WriteClock();
         nBits >>= 1;
     }
 }
 
 uint32_t CSWDLoader::ReadBits(unsigned nBitCount) {
-    m_DataPin.SetMode(GPIOModeInput, false);
+    SetModePin(&m_DataPin, GPIOModeInput, false);
     uint32_t nBits = 0;
     unsigned nRemaining = nBitCount--;
     while (nRemaining--) {
-        unsigned nLevel = m_DataPin.Read();
+        unsigned nLevel = ReadPin(&m_DataPin);
         WriteClock();
         nBits >>= 1;
         nBits |= nLevel << nBitCount;
@@ -382,8 +383,8 @@ uint32_t CSWDLoader::ReadBits(unsigned nBitCount) {
 
 void CSWDLoader::WriteClock(void) {
     const struct timespec ts = {0, m_nDelayNanos};
-    m_ClockPin.Write(LOW);
+    WritePin(&m_ClockPin, LOW);
     nanosleep(&ts, NULL);
-    m_ClockPin.Write(HIGH);
+    WritePin(&m_ClockPin, HIGH);
     nanosleep(&ts, NULL);
 }
