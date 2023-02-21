@@ -40,11 +40,11 @@ struct CSWDLoader {
 /// (active LOW) \param nClockRateKHz Requested interface clock rate in KHz
 /// \note GPIO pin numbers are SoC number, not header positions.
 /// \note The actual clock rate may be smaller than the requested.
-int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
+int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
                   unsigned nDataPin, unsigned nResetPin,
                   unsigned nClockRateKHz);
 
-void SWDDeInitialize(struct CSWDLoader* loader);
+void SWDDeInitialise(struct CSWDLoader* loader);
 
 /// \brief Halt the RP2040, load a program image and start it
 /// \param pProgram Pointer to program image in memory

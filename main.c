@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 #include <pigpio.h>
@@ -14,7 +15,7 @@
 #define RP2040_RAM_BASE 0x20000000U
 
 int main(int ac, char* av[]) {
-    int swdio_gpio = SWDIO_PIN, swclk_gpio = SWCLK_PIN;
+    int swdio_gpio = SWDIO_PIN, swclk_gpio = SWCLK_PIN, rc = -1;
     char* f_name;
     if (ac < 2) {
         fprintf(
@@ -41,33 +42,33 @@ int main(int ac, char* av[]) {
     off_t f_size = lseek(fd, 0, SEEK_END);
     if (f_size < 0) {
         fprintf(stderr, "Can't get size of %s\n", f_name);
-        exit(-1);
+        goto exit_fd;
     }
     if ((f_size & 3) != 0) {
         fprintf(stderr, "Image size must be multiple of 4\n");
-        exit(-1);
+        goto exit_fd;
     }
     lseek(fd, 0, SEEK_SET);
-    printf("File size %lu bytes\n", f_size);
-    char* image = (char*)malloc(f_size);
-    if (image == NULL) {
+    printf("Image size %lu bytes\n", f_size);
+    char* image = (char*)mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (image == MAP_FAILED) {
         fprintf(stderr, "Not enough memory\n");
-        exit(-1);
+        goto exit_fd;
     }
-    if (read(fd, image, f_size) != f_size) {
-        fprintf(stderr, "Error reading %s\n", f_name);
-        exit(-1);
-    }
-    close(fd);
     gpioInitialise();
     struct CSWDLoader loader;
-    if (!SWDInitialize(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
+    if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
         fprintf(stderr, "Firmware init failed\n");
-        exit(-1);
+        goto exit_swd;
     }
     if (!SWDLoad(&loader, image, f_size, RP2040_RAM_BASE)) {
         fprintf(stderr, "Firmware load failed\n");
-        exit(-1);
+        goto exit_swd;
     }
-    return 0;
+    rc = 0;
+exit_swd:
+    SWDDeInitialise(&loader);
+exit_fd:
+    close(fd);
+    return rc;
 }

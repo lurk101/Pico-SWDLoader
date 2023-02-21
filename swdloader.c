@@ -114,7 +114,7 @@ static void WriteBits(struct CSWDLoader* loader, uint32_t nBits,
 static uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount);
 static void WriteClock(struct CSWDLoader* loader);
 
-int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
+int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
                   unsigned nDataPin, unsigned nResetPin,
                   unsigned nClockRateKHz) {
     loader->m_bResetAvailable = nResetPin != 0;
@@ -162,7 +162,7 @@ int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
     return 1;
 }
 
-void SWDDeInitialize(struct CSWDLoader* loader) {
+void SWDDeInitialise(struct CSWDLoader* loader) {
     SetModePin(&loader->m_DataPin, GPIOModeInput, 1);
     SetModePin(&loader->m_ClockPin, GPIOModeInput, 1);
     if (loader->m_bResetAvailable)
