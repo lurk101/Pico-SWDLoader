@@ -19,10 +19,13 @@
 //
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include <cassert>
 #include <chrono>
 #include <thread>
+
+#include <gpiod.h>
 
 #include "swdloader.h"
 
@@ -113,7 +116,6 @@ CSWDLoader::CSWDLoader(unsigned nClockPin, unsigned nDataPin,
         m_ResetPin.Write(HIGH);
         m_ResetPin.SetMode(GPIOModeOutput, false);
     }
-
     m_DataPin.SetPullMode(GPIOPullModeUp);
 }
 
@@ -121,9 +123,8 @@ CSWDLoader::~CSWDLoader(void) {
     m_DataPin.SetMode(GPIOModeInput);
     m_ClockPin.SetMode(GPIOModeInput);
 
-    if (m_bResetAvailable) {
+    if (m_bResetAvailable)
         m_ResetPin.SetMode(GPIOModeInput);
-    }
 }
 
 bool CSWDLoader::Initialize(void) {
@@ -147,21 +148,17 @@ bool CSWDLoader::Initialize(void) {
     uint32_t nIDCode;
     if (!ReadData(RD_DP_DPIDR, &nIDCode)) {
         fprintf(stderr, "Target does not respond");
-
         return false;
     }
 
     if (nIDCode != DP_DPIDR_SUPPORTED) {
         EndTransaction();
-
         fprintf(stderr, "Debug target not supported (ID code 0x%X)", nIDCode);
-
         return false;
     }
 
     if (!PowerOn()) {
         fprintf(stderr, "Target connect failed");
-
         return false;
     }
 
@@ -176,6 +173,7 @@ bool CSWDLoader::Load(const void* pProgram, size_t nProgSize,
         return false;
     }
 
+	printf("Loading ");
     const auto nStartTicks = chrono::system_clock::now();
 
     if (!LoadChunk(pProgram, nProgSize, nAddress)) {
@@ -185,7 +183,7 @@ bool CSWDLoader::Load(const void* pProgram, size_t nProgSize,
     const chrono::duration<double> fDuration =
         chrono::system_clock::now() - nStartTicks;
 
-    printf("%lu bytes loaded in %.2f seconds (%.1f KBytes/s)", nProgSize,
+    printf("\n%lu bytes loaded in %.2f seconds (%.1f KBytes/s)\n", nProgSize,
            fDuration.count(), nProgSize / fDuration.count() / 1024.0);
 
     return Start(nAddress);
@@ -222,6 +220,8 @@ bool CSWDLoader::LoadChunk(const void* pChunk, size_t nChunkSize,
 
     assert((nChunkSize & 3) == 0);
     while (nChunkSize > 0) {
+		printf(".");
+		fflush(stdout);
         BeginTransaction();
 
         if (!WriteData(WR_AP_TAR, nAddress)) {
@@ -270,6 +270,7 @@ bool CSWDLoader::LoadChunk(const void* pChunk, size_t nChunkSize,
 }
 
 bool CSWDLoader::Start(uint32_t nAddress) {
+	printf("Starting\n");
     BeginTransaction();
 
     if (!WriteMem(DCRDR, nAddress) ||
@@ -404,9 +405,13 @@ void CSWDLoader::SelectTarget(uint32_t nCPUAPID, uint8_t uchInstanceID) {
     WriteBits(__builtin_parity(nWData), 1);
 }
 
-void CSWDLoader::BeginTransaction(void) { WriteIdle(); }
+void CSWDLoader::BeginTransaction(void) { 
+	WriteIdle(); 
+}
 
-void CSWDLoader::EndTransaction(void) { WriteIdle(); }
+void CSWDLoader::EndTransaction(void) { 
+	WriteIdle(); 
+}
 
 // Leaving dormant state and switch to SW-DP ([1] section B5.3.4)
 void CSWDLoader::Dormant2SWD(void) {
@@ -428,47 +433,39 @@ void CSWDLoader::LineReset(void) {
 }
 
 void CSWDLoader::WriteIdle(void) {
-    WriteBits(0, 8);
-
-    m_ClockPin.Write(LOW);
-
-    m_DataPin.SetMode(GPIOModeOutput, false);
-    m_DataPin.Write(LOW);
+	WriteBits (0, 8);
+	m_ClockPin.Write (LOW);
+	m_DataPin.SetMode (GPIOModeOutput, false);
+	m_DataPin.Write (LOW);
 }
 
 void CSWDLoader::WriteBits(uint32_t nBits, unsigned nBitCount) {
-    m_DataPin.SetMode(GPIOModeOutput, false);
-
-    while (nBitCount--) {
-        m_DataPin.Write(nBits & 1);
-
-        WriteClock();
-
-        nBits >>= 1;
-    }
+	m_DataPin.SetMode (GPIOModeOutput, false);
+	while (nBitCount--)
+	{
+		m_DataPin.Write (nBits & 1);
+		WriteClock ();
+		nBits >>= 1;
+	}
 }
 
 uint32_t CSWDLoader::ReadBits(unsigned nBitCount) {
-    m_DataPin.SetMode(GPIOModeInput, false);
-
-    uint32_t nBits = 0;
-    unsigned nRemaining = nBitCount--;
-    while (nRemaining--) {
-        unsigned nLevel = m_DataPin.Read();
-
-        WriteClock();
-
-        nBits >>= 1;
-        nBits |= nLevel << nBitCount;
-    }
-
-    return nBits;
+	m_DataPin.SetMode (GPIOModeInput, false);
+	uint32_t nBits = 0;
+	unsigned nRemaining = nBitCount--;
+	while (nRemaining--)
+	{
+		unsigned nLevel = m_DataPin.Read ();
+		WriteClock ();
+		nBits >>= 1;
+		nBits |= nLevel << nBitCount;
+	}
+	return nBits;
 }
 
 void CSWDLoader::WriteClock(void) {
     m_ClockPin.Write(LOW);
-    this_thread::sleep_for(chrono::nanoseconds(m_nDelayNanos));
-
+	usleep(1);
     m_ClockPin.Write(HIGH);
-    this_thread::sleep_for(chrono::nanoseconds(m_nDelayNanos));
+	usleep(1);
 }

@@ -1,11 +1,9 @@
 CC = g++
-#CFLAGS = -Wall -g
-CFLAGS = -Wall -O3
+CFLAGS = -Wall -g
+#CFLAGS = -Wall -O3
  
 swdloader: main.o swdloader.o gpiopin.o
-	$(CC) $(CFLAGS) -o swdloader main.o swdloader.o gpiopin.o
- 
-# The main.o target can be written more simply
+	$(CC) $(CFLAGS) -o swdloader main.o swdloader.o gpiopin.o -lpigpio
  
 main.o: main.cpp swdloader.h
 	$(CC) $(CFLAGS) -c main.cpp

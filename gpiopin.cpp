@@ -19,6 +19,8 @@
 //
 #include <cassert>
 
+#include <pigpio.h>
+
 #include "gpiopin.h"
 
 CGPIOPin::CGPIOPin(void) : m_nPin(GPIO_PINS), m_Mode(GPIOModeUnknown) {}
@@ -26,30 +28,44 @@ CGPIOPin::CGPIOPin(void) : m_nPin(GPIO_PINS), m_Mode(GPIOModeUnknown) {}
 CGPIOPin::CGPIOPin(unsigned nPin, TGPIOMode Mode)
     : m_nPin(GPIO_PINS), m_Mode(GPIOModeUnknown) {
     AssignPin(nPin);
-
     SetMode(Mode, true);
 }
 
 CGPIOPin::~CGPIOPin(void) { m_nPin = GPIO_PINS; }
 
 void CGPIOPin::AssignPin(unsigned nPin) {
-    assert(m_nPin < GPIO_PINS);
     m_nPin = nPin;
+    assert(m_nPin < GPIO_PINS);
 }
+
+//    GPIOModeInput,
+//    GPIOModeOutput,
+//    GPIOModeInputPullUp,
+//    GPIOModeInputPullDown,
 
 void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
     assert(Mode < GPIOModeUnknown);
     m_Mode = Mode;
-    if (bInitPin && m_Mode == GPIOModeOutput) {
-        SetPullMode(GPIOPullModeOff);
-    }
 
-    assert(m_nPin < GPIO_PINS);
+    if (bInitPin && m_Mode == GPIOModeOutput)
+        SetPullMode(GPIOPullModeOff);
+
+    switch (m_Mode) {
+    case GPIOModeInput:
+    case GPIOModeInputPullUp:
+    case GPIOModeInputPullDown:
+        gpioSetMode(m_nPin, PI_INPUT);
+        break;
+    case GPIOModeOutput:
+        gpioSetMode(m_nPin, PI_OUTPUT);
+    default:
+        break;
+    }
 
     if (bInitPin) {
         switch (m_Mode) {
         case GPIOModeInput:
-            SetPullMode(GPIOPullModeOff);
+        	SetPullMode(GPIOPullModeOff);
             break;
 
         case GPIOModeOutput:
@@ -57,11 +73,11 @@ void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
             break;
 
         case GPIOModeInputPullUp:
-            SetPullMode(GPIOPullModeUp);
+        	SetPullMode(GPIOPullModeUp);
             break;
 
         case GPIOModeInputPullDown:
-            SetPullMode(GPIOPullModeDown);
+        	SetPullMode(GPIOPullModeDown);
             break;
 
         default:
@@ -72,29 +88,39 @@ void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
 
 void CGPIOPin::Write(unsigned nValue) {
     assert(m_nPin < GPIO_PINS);
-
     // Output level can be set in input mode for subsequent switch to output
-    assert(m_Mode < GPIOModeAlternateFunction0);
-
+    assert(m_Mode < GPIOModeUnknown);
     assert(nValue == LOW || nValue == HIGH);
-    m_nValue = nValue;
+	gpioWrite(m_nPin, nValue == LOW ? 0 : 1);
 }
 
 unsigned CGPIOPin::Read(void) const {
     assert(m_nPin < GPIO_PINS);
-
     assert(m_Mode == GPIOModeInput || m_Mode == GPIOModeInputPullUp ||
            m_Mode == GPIOModeInputPullDown);
-
-    unsigned nResult = 0 ? HIGH : LOW;
-
-    return nResult;
+    return gpioRead(m_nPin) ? HIGH : LOW;
 }
 
 void CGPIOPin::Invert(void) {
     assert(m_Mode == GPIOModeOutput);
-
-    Write(m_nValue ^ 1);
+    Write(Read() == LOW ? HIGH : LOW);
 }
 
-void CGPIOPin::SetPullMode(TGPIOPullMode Mode) {}
+void CGPIOPin::SetPullMode(TGPIOPullMode Mode) {
+        switch (Mode) {
+        case GPIOPullModeOff:
+        	gpioSetPullUpDown(m_nPin, PI_PUD_OFF);
+            break;
+
+        case GPIOPullModeUp:
+        	gpioSetPullUpDown(m_nPin, PI_PUD_UP);
+            break;
+
+        case GPIOPullModeDown:
+        	gpioSetPullUpDown(m_nPin, PI_PUD_DOWN);
+            break;
+
+        default:
+            break;
+        }
+}

@@ -24,23 +24,11 @@
 
 #define GPIO_PINS 54
 
-enum TGPIOVirtualPin {
-    GPIOPinAudioLeft = GPIO_PINS,
-    GPIOPinAudioRight,
-    GPIOPinUnknown
-};
-
 enum TGPIOMode {
     GPIOModeInput,
     GPIOModeOutput,
     GPIOModeInputPullUp,
     GPIOModeInputPullDown,
-    GPIOModeAlternateFunction0,
-    GPIOModeAlternateFunction1,
-    GPIOModeAlternateFunction2,
-    GPIOModeAlternateFunction3,
-    GPIOModeAlternateFunction4,
-    GPIOModeAlternateFunction5,
     GPIOModeUnknown
 };
 
@@ -85,14 +73,9 @@ class CGPIOPin /// Encapsulates a GPIO pin
     /// \brief Write inverted value to pin
     void Invert(void);
 
-  private:
-    void SetAlternateFunction(unsigned nFunction);
-
   protected:
     unsigned m_nPin;
     TGPIOMode m_Mode;
-    unsigned m_nValue;
-    void* m_pParam;
 };
 
 #endif
