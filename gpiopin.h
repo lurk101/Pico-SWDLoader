@@ -67,13 +67,11 @@ class CGPIOPin /// Encapsulates a GPIO pin
     void Write(unsigned nValue);
     /// \return Value read from pin (LOW or HIGH)
     unsigned Read(void) const;
+
 #define LOW 0
 #define HIGH 1
 
-    /// \brief Write inverted value to pin
-    void Invert(void);
-
-  protected:
+  private:
     unsigned m_nPin;
     TGPIOMode m_Mode;
 };

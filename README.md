@@ -1,4 +1,4 @@
-This Linux program will load a Pico program binary built with -DPICO_NO_FLASH=1 directly to Pico RAM and start the program
+This RaspiOS program will load a Pico program binary built with -DPICO_NO_FLASH=1 directly to Pico RAM and start the program
 at 0x20000000.
 
 Building

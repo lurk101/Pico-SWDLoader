@@ -37,6 +37,10 @@ int main(int ac, char* av[]) {
         fprintf(stderr, "Can't get size of %s\n", f_name);
         exit(-1);
     }
+    if ((f_size & 3) != 0) {
+        fprintf(stderr, "Image size must be multiple of 4\n");
+        exit(-1);
+    }
     lseek(fd, 0, SEEK_SET);
     printf("File size %lu bytes\n", f_size);
     char* image = (char*)malloc(f_size);

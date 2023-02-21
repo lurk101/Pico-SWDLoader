@@ -122,7 +122,6 @@ CSWDLoader::CSWDLoader(unsigned nClockPin, unsigned nDataPin,
 CSWDLoader::~CSWDLoader(void) {
     m_DataPin.SetMode(GPIOModeInput);
     m_ClockPin.SetMode(GPIOModeInput);
-
     if (m_bResetAvailable)
         m_ResetPin.SetMode(GPIOModeInput);
 }
@@ -135,63 +134,47 @@ bool CSWDLoader::Initialize(void) {
         m_ResetPin.Write(HIGH);
         this_thread::sleep_for(chrono::milliseconds(10));
     }
-
     BeginTransaction();
-
     Dormant2SWD();
     WriteIdle();
     LineReset();
-
     // core 1 remains halted after reset
     SelectTarget(DP_TARGETSEL_CPUAPID_SUPPORTED, DP_TARGETSEL_TINSTANCE_CORE0);
-
     uint32_t nIDCode;
     if (!ReadData(RD_DP_DPIDR, &nIDCode)) {
-        fprintf(stderr, "Target does not respond");
+        fprintf(stderr, "Target does not respond\n");
         return false;
     }
-
     if (nIDCode != DP_DPIDR_SUPPORTED) {
         EndTransaction();
-        fprintf(stderr, "Debug target not supported (ID code 0x%X)", nIDCode);
+        fprintf(stderr, "Debug target not supported (ID code 0x%X)\n", nIDCode);
         return false;
     }
-
     if (!PowerOn()) {
-        fprintf(stderr, "Target connect failed");
+        fprintf(stderr, "Target connect failed\n");
         return false;
     }
-
     EndTransaction();
-
     return true;
 }
 
 bool CSWDLoader::Load(const void* pProgram, size_t nProgSize,
                       uint32_t nAddress) {
-    if (!Halt()) {
+    if (!Halt())
         return false;
-    }
-
     printf("Loading ");
     const auto nStartTicks = chrono::system_clock::now();
-
-    if (!LoadChunk(pProgram, nProgSize, nAddress)) {
+    if (!LoadChunk(pProgram, nProgSize, nAddress))
         return false;
-    }
-
     const chrono::duration<double> fDuration =
         chrono::system_clock::now() - nStartTicks;
-
     printf("\n%lu bytes loaded in %.2f seconds (%.1f KBytes/s)\n", nProgSize,
            fDuration.count(), nProgSize / fDuration.count() / 1024.0);
-
     return Start(nAddress);
 }
 
 bool CSWDLoader::Halt(void) {
     BeginTransaction();
-
     if (!WriteData(WR_AP_CSW, (AP_CSW_SIZE_32BITS << AP_CSW_SIZE__SHIFT) |
                                   (AP_CSW_SIZE_INCREMENT_SINGLE
                                    << AP_CSW_ADDR_INC__SHIFT) |
@@ -200,122 +183,90 @@ bool CSWDLoader::Halt(void) {
                                   AP_CSW_DBG_SW_ENABLE) ||
         !WriteMem(DHCSR, DHCSR_C_DEBUGEN | DHCSR_C_HALT |
                              (DHCSR_DBGKEY_KEY << DHCSR_DBGKEY__SHIFT))) {
-        fprintf(stderr, "Target halt failed");
-
+        fprintf(stderr, "Target halt failed\n");
         return false;
     }
-
     EndTransaction();
-
     return true;
 }
 
 bool CSWDLoader::LoadChunk(const void* pChunk, size_t nChunkSize,
                            uint32_t nAddress) {
+    assert(pChunk != 0);
+    assert((nChunkSize & 3) == 0);
     const uint32_t* pChunk32 = (const uint32_t*)pChunk;
-    assert(pChunk32 != 0);
-
     uint32_t nFirstWord = *pChunk32;
     uint32_t nAddressCopy = nAddress;
-
-    assert((nChunkSize & 3) == 0);
     while (nChunkSize > 0) {
         printf(".");
         fflush(stdout);
         BeginTransaction();
-
         if (!WriteData(WR_AP_TAR, nAddress)) {
-            fprintf(stderr, "Cannot write TAR (0x%X)", nAddress);
+            fprintf(stderr, "Cannot write TAR (0x%X)\n", nAddress);
             return false;
         }
-
         const size_t BlockSize = 1024;
         for (unsigned i = 0; i < BlockSize; i += 4) {
             if (!WriteData(WR_AP_DRW, *pChunk32++)) {
-                fprintf(stderr, "Memory write failed (0x%X)", nAddress);
-
+                fprintf(stderr, "Memory write failed (0x%X)\n", nAddress);
                 return false;
             }
-
-            if (nChunkSize > 4) {
+            if (nChunkSize > 4)
                 nChunkSize -= 4;
-            } else {
+            else {
                 nChunkSize = 0;
                 break;
             }
         }
-
         nAddress += BlockSize;
-
         EndTransaction();
     }
-
     BeginTransaction();
-
     uint32_t nFirstWordRead;
-    if (!ReadMem(nAddressCopy, &nFirstWordRead)) {
-        fprintf(stderr, "Memory read failed (0x%X)", nAddressCopy);
-    }
-
+    if (!ReadMem(nAddressCopy, &nFirstWordRead))
+        fprintf(stderr, "Memory read failed (0x%X)\n", nAddressCopy);
     EndTransaction();
-
     if (nFirstWord != nFirstWordRead) {
-        fprintf(stderr, "Data mismatch (0x%X != 0x%X)", nFirstWord,
+        fprintf(stderr, "Data mismatch (0x%X != 0x%X)\n", nFirstWord,
                 nFirstWordRead);
-
         return false;
     }
-
     return true;
 }
 
 bool CSWDLoader::Start(uint32_t nAddress) {
     printf("Starting\n");
     BeginTransaction();
-
     if (!WriteMem(DCRDR, nAddress) ||
         !WriteMem(DCRSR,
                   (DCRSR_REGSEL_R15 << DCRSR_REGSEL__SHIFT) | DCRSR_REGW_N_R) ||
         !WriteMem(DHCSR, DHCSR_C_DEBUGEN |
                              (DHCSR_DBGKEY_KEY << DHCSR_DBGKEY__SHIFT))) {
-        fprintf(stderr, "Target start failed");
-
+        fprintf(stderr, "Target start failed\n");
         return false;
     }
-
     EndTransaction();
-
     return true;
 }
 
 bool CSWDLoader::PowerOn(void) {
     if (!WriteData(WR_DP_ABORT, DP_ABORT_STKCMPCLR | DP_ABORT_STKERRCLR |
-                                    DP_ABORT_WDERRCLR | DP_ABORT_ORUNERRCLR)) {
+                                    DP_ABORT_WDERRCLR | DP_ABORT_ORUNERRCLR))
         return false;
-    }
-
-    if (!WriteData(WR_DP_SELECT, DP_SELECT_DEFAULT)) {
+    if (!WriteData(WR_DP_SELECT, DP_SELECT_DEFAULT))
         return false;
-    }
-
     if (!WriteData(WR_DP_CTRL_STAT,
                    DP_CTRL_STAT_ORUNDETECT | DP_CTRL_STAT_STICKYERR |
-                       DP_CTRL_STAT_CDBGPWRUPREQ | DP_CTRL_STAT_CSYSPWRUPREQ)) {
+                       DP_CTRL_STAT_CDBGPWRUPREQ | DP_CTRL_STAT_CSYSPWRUPREQ))
         return false;
-    }
-
     uint32_t nCtrlStat;
-    if (!ReadData(RD_DP_CTRL_STAT, &nCtrlStat)) {
+    if (!ReadData(RD_DP_CTRL_STAT, &nCtrlStat))
         return false;
-    }
-
     if (!(nCtrlStat & DP_CTRL_STAT_CDBGPWRUPACK) ||
         !(nCtrlStat & DP_CTRL_STAT_CSYSPWRUPACK)) {
         EndTransaction();
-
         return false;
     }
-
     return true;
 }
 
@@ -330,77 +281,52 @@ bool CSWDLoader::ReadMem(uint32_t nAddress, uint32_t* pData) {
 
 bool CSWDLoader::WriteData(uint8_t nRequest, uint32_t nData) {
     WriteBits(nRequest, 7);
-
     assert(nRequest & 0x80);
     ReadBits(1 + TURN_CYCLES); // park bit (not driven) and turn cycle
-
     uint32_t nResponse = ReadBits(3);
-
     ReadBits(TURN_CYCLES);
-
     if (nResponse != DP_OK) {
         EndTransaction();
-
-        fprintf(stderr, "Cannot write (req 0x%02X, data 0x%X, resp %u)",
+        fprintf(stderr, "Cannot write (req 0x%02X, data 0x%X, resp %u)\n",
                 (unsigned)nRequest, nData, nResponse);
-
         return false;
     }
-
     WriteBits(nData, 32);
     WriteBits(__builtin_parity(nData), 1);
-
     return true;
 }
 
 bool CSWDLoader::ReadData(uint8_t nRequest, uint32_t* pData) {
     WriteBits(nRequest, 7);
-
     assert(nRequest & 0x80);
     ReadBits(1 + TURN_CYCLES); // park bit (not driven) and turn cycle
-
     uint32_t nResponse = ReadBits(3);
-
     if (nResponse != DP_OK) {
         ReadBits(TURN_CYCLES);
-
         EndTransaction();
-
-        fprintf(stderr, "Cannot read (req 0x%02X, resp %u)", (unsigned)nRequest,
-                nResponse);
-
+        fprintf(stderr, "Cannot read (req 0x%02X, resp %u)\n",
+                (unsigned)nRequest, nResponse);
         return false;
     }
-
     uint32_t nData = ReadBits(32);
-
     uint32_t nParity = ReadBits(1);
     if (nParity != __builtin_parity(nData)) {
         ReadBits(TURN_CYCLES);
-
         EndTransaction();
-
-        fprintf(stderr, "Parity error (req 0x%02X)", (unsigned)nRequest);
-
+        fprintf(stderr, "Parity error (req 0x%02X)\n", (unsigned)nRequest);
         return false;
     }
-
     assert(pData != 0);
     *pData = nData;
-
     ReadBits(TURN_CYCLES);
-
     return true;
 }
 
 void CSWDLoader::SelectTarget(uint32_t nCPUAPID, uint8_t uchInstanceID) {
     uint32_t nWData =
         nCPUAPID | ((uint32_t)uchInstanceID << DP_TARGETSEL_TINSTANCE__SHIFT);
-
     WriteBits(WR_DP_TARGETSEL, 7);
-
     ReadBits(1 + 5); // park bit and 5 bits not driven
-
     WriteBits(nWData, 32);
     WriteBits(__builtin_parity(nWData), 1);
 }
@@ -412,14 +338,11 @@ void CSWDLoader::EndTransaction(void) { WriteIdle(); }
 // Leaving dormant state and switch to SW-DP ([1] section B5.3.4)
 void CSWDLoader::Dormant2SWD(void) {
     WriteBits(0xFF, 8); // 8 cycles high
-
     WriteBits(0x6209F392U, 32); // selection alert sequence
     WriteBits(0x86852D95U, 32);
     WriteBits(0xE3DDAFE9U, 32);
     WriteBits(0x19BC0EA2U, 32);
-
     WriteBits(0x0, 4); // 4 cycles low
-
     WriteBits(0x1A, 8); // activation code
 }
 

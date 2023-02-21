@@ -62,7 +62,7 @@ void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
         break;
     }
 
-    if (bInitPin) {
+    if (bInitPin)
         switch (m_Mode) {
         case GPIOModeInput:
             SetPullMode(GPIOPullModeOff);
@@ -83,12 +83,10 @@ void CGPIOPin::SetMode(TGPIOMode Mode, bool bInitPin) {
         default:
             break;
         }
-    }
 }
 
 void CGPIOPin::Write(unsigned nValue) {
     assert(m_nPin < GPIO_PINS);
-    // Output level can be set in input mode for subsequent switch to output
     assert(m_Mode < GPIOModeUnknown);
     assert(nValue == LOW || nValue == HIGH);
     gpioWrite(m_nPin, nValue == LOW ? 0 : 1);
@@ -99,11 +97,6 @@ unsigned CGPIOPin::Read(void) const {
     assert(m_Mode == GPIOModeInput || m_Mode == GPIOModeInputPullUp ||
            m_Mode == GPIOModeInputPullDown);
     return gpioRead(m_nPin) ? HIGH : LOW;
-}
-
-void CGPIOPin::Invert(void) {
-    assert(m_Mode == GPIOModeOutput);
-    Write(Read() == LOW ? HIGH : LOW);
 }
 
 void CGPIOPin::SetPullMode(TGPIOPullMode Mode) {
