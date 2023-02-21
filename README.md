@@ -14,7 +14,7 @@ Running using default GPIOs 24 & 25
 NOTE: Must run with root priviledge
 
 ```
-sudo ./swdloader test.img
+sudo ./swdloader uart.img
 ```
 
 Help
