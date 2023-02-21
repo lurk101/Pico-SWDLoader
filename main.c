@@ -19,7 +19,13 @@ int main(int ac, char* av[]) {
     if (ac < 2) {
         fprintf(
             stderr,
-            "Usage: swdloader image_file_name [ swdio_gpio [ swclk_gpio ]]\n");
+            "Usage: swdloader image_file_name [ swdio_gpio [ swclk_gpio ]]\n"
+            "  Defaults: swdio = GPIO%d, swclk = GPIO%d\n",
+            SWDIO_PIN, SWCLK_PIN);
+        exit(-1);
+    }
+    if (geteuid() != 0) {
+        fprintf(stderr, "swdloader needs root\n");
         exit(-1);
     }
     f_name = av[1];

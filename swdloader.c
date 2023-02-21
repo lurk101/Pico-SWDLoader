@@ -1,8 +1,5 @@
 //
-// swdloader.cpp
-//
-// Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2021  R. Stange <rsta2@o2online.de>
+// swdloader.c
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,13 +24,10 @@
 
 #include "swdloader.h"
 
-//
 // References:
 //
 // [1] ARM Debug Interface Architecture Specification ADIv5.0 to ADIv5.2, IHI
 // 0031E [2] ARM v6-M Architecture Reference Manual, DDI 0419E
-//
-
 // Debug Port v2
 
 #define TURN_CYCLES 1
@@ -130,11 +124,9 @@ int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
     if (loader->m_bResetAvailable) {
         InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput);
         AssignPin(&loader->m_ResetPin, nResetPin);
-
-        SetModePin(&loader->m_ResetPin, GPIOModeInput,
-                   false); // suppress LOW spike
+        SetModePin(&loader->m_ResetPin, GPIOModeInput, 0); // suppress LOW spike
         WritePin(&loader->m_ResetPin, HIGH);
-        SetModePin(&loader->m_ResetPin, GPIOModeOutput, false);
+        SetModePin(&loader->m_ResetPin, GPIOModeOutput, 0);
     }
     SetPullModePin(&loader->m_DataPin, GPIOPullModeUp);
     if (loader->m_bResetAvailable) {
@@ -155,19 +147,19 @@ int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
     uint32_t nIDCode;
     if (!ReadData(loader, RD_DP_DPIDR, &nIDCode)) {
         fprintf(stderr, "Target does not respond\n");
-        return false;
+        return 0;
     }
     if (nIDCode != DP_DPIDR_SUPPORTED) {
         EndTransaction(loader);
         fprintf(stderr, "Debug target not supported (ID code 0x%X)\n", nIDCode);
-        return false;
+        return 0;
     }
     if (!PowerOn(loader)) {
         fprintf(stderr, "Target connect failed\n");
-        return false;
+        return 0;
     }
     EndTransaction(loader);
-    return true;
+    return 1;
 }
 
 void SWDDeInitialize(struct CSWDLoader* loader) {
@@ -180,15 +172,15 @@ void SWDDeInitialize(struct CSWDLoader* loader) {
 int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
             uint32_t nAddress) {
     if (!SWDHalt(loader))
-        return false;
+        return 0;
     printf("Loading ");
     time_t nStart, nEnd;
     time(&nStart);
     if (!SWDLoadChunk(loader, pProgram, nProgSize, nAddress))
-        return false;
+        return 0;
     time(&nEnd);
     double diff_t = difftime(nEnd, nStart);
-    printf("\n%lu bytes loaded in %.2f seconds (%.1f KBytes/s)\n", nProgSize,
+    printf("\n%lu bytes loaded in %.0f seconds (%.1f KBytes/s)\n", nProgSize,
            diff_t, nProgSize / diff_t / 1024.0);
     return SWDStart(loader, nAddress);
 }
@@ -205,10 +197,10 @@ int SWDHalt(struct CSWDLoader* loader) {
                   DHCSR_C_DEBUGEN | DHCSR_C_HALT |
                       (DHCSR_DBGKEY_KEY << DHCSR_DBGKEY__SHIFT))) {
         fprintf(stderr, "Target halt failed\n");
-        return false;
+        return 0;
     }
     EndTransaction(loader);
-    return true;
+    return 1;
 }
 
 int SWDLoadChunk(struct CSWDLoader* loader, const void* pChunk,
@@ -224,13 +216,13 @@ int SWDLoadChunk(struct CSWDLoader* loader, const void* pChunk,
         BeginTransaction(loader);
         if (!WriteData(loader, WR_AP_TAR, nAddress)) {
             fprintf(stderr, "Cannot write TAR (0x%X)\n", nAddress);
-            return false;
+            return 0;
         }
         const size_t BlockSize = 1024;
         for (unsigned i = 0; i < BlockSize; i += 4) {
             if (!WriteData(loader, WR_AP_DRW, *pChunk32++)) {
                 fprintf(stderr, "Memory write failed (0x%X)\n", nAddress);
-                return false;
+                return 0;
             }
             if (nChunkSize > 4)
                 nChunkSize -= 4;
@@ -250,9 +242,9 @@ int SWDLoadChunk(struct CSWDLoader* loader, const void* pChunk,
     if (nFirstWord != nFirstWordRead) {
         fprintf(stderr, "Data mismatch (0x%X != 0x%X)\n", nFirstWord,
                 nFirstWordRead);
-        return false;
+        return 0;
     }
-    return true;
+    return 1;
 }
 
 int SWDStart(struct CSWDLoader* loader, uint32_t nAddress) {
@@ -265,32 +257,32 @@ int SWDStart(struct CSWDLoader* loader, uint32_t nAddress) {
                   DHCSR_C_DEBUGEN |
                       (DHCSR_DBGKEY_KEY << DHCSR_DBGKEY__SHIFT))) {
         fprintf(stderr, "Target start failed\n");
-        return false;
+        return 0;
     }
     EndTransaction(loader);
-    return true;
+    return 1;
 }
 
 int PowerOn(struct CSWDLoader* loader) {
     if (!WriteData(loader, WR_DP_ABORT,
                    DP_ABORT_STKCMPCLR | DP_ABORT_STKERRCLR | DP_ABORT_WDERRCLR |
                        DP_ABORT_ORUNERRCLR))
-        return false;
+        return 0;
     if (!WriteData(loader, WR_DP_SELECT, DP_SELECT_DEFAULT))
-        return false;
+        return 0;
     if (!WriteData(loader, WR_DP_CTRL_STAT,
                    DP_CTRL_STAT_ORUNDETECT | DP_CTRL_STAT_STICKYERR |
                        DP_CTRL_STAT_CDBGPWRUPREQ | DP_CTRL_STAT_CSYSPWRUPREQ))
-        return false;
+        return 0;
     uint32_t nCtrlStat;
     if (!ReadData(loader, RD_DP_CTRL_STAT, &nCtrlStat))
-        return false;
+        return 0;
     if (!(nCtrlStat & DP_CTRL_STAT_CDBGPWRUPACK) ||
         !(nCtrlStat & DP_CTRL_STAT_CSYSPWRUPACK)) {
         EndTransaction(loader);
-        return false;
+        return 0;
     }
-    return true;
+    return 1;
 }
 
 int WriteMem(struct CSWDLoader* loader, uint32_t nAddress, uint32_t nData) {
@@ -314,11 +306,11 @@ int WriteData(struct CSWDLoader* loader, uint8_t nRequest, uint32_t nData) {
         EndTransaction(loader);
         fprintf(stderr, "Cannot write (req 0x%02X, data 0x%X, resp %u)\n",
                 (unsigned)nRequest, nData, nResponse);
-        return false;
+        return 0;
     }
     WriteBits(loader, nData, 32);
     WriteBits(loader, __builtin_parity(nData), 1);
-    return true;
+    return 1;
 }
 
 int ReadData(struct CSWDLoader* loader, uint8_t nRequest, uint32_t* pData) {
@@ -331,7 +323,7 @@ int ReadData(struct CSWDLoader* loader, uint8_t nRequest, uint32_t* pData) {
         EndTransaction(loader);
         fprintf(stderr, "Cannot read (req 0x%02X, resp %u)\n",
                 (unsigned)nRequest, nResponse);
-        return false;
+        return 0;
     }
     uint32_t nData = ReadBits(loader, 32);
     uint32_t nParity = ReadBits(loader, 1);
@@ -339,12 +331,12 @@ int ReadData(struct CSWDLoader* loader, uint8_t nRequest, uint32_t* pData) {
         ReadBits(loader, TURN_CYCLES);
         EndTransaction(loader);
         fprintf(stderr, "Parity error (req 0x%02X)\n", (unsigned)nRequest);
-        return false;
+        return 0;
     }
     assert(pData != 0);
     *pData = nData;
     ReadBits(loader, TURN_CYCLES);
-    return true;
+    return 1;
 }
 
 void SelectTarget(struct CSWDLoader* loader, uint32_t nCPUAPID,
@@ -380,12 +372,12 @@ void LineReset(struct CSWDLoader* loader) {
 void WriteIdle(struct CSWDLoader* loader) {
     WriteBits(loader, 0, 8);
     WritePin(&loader->m_ClockPin, LOW);
-    SetModePin(&loader->m_DataPin, GPIOModeOutput, false);
+    SetModePin(&loader->m_DataPin, GPIOModeOutput, 0);
     WritePin(&loader->m_DataPin, LOW);
 }
 
 void WriteBits(struct CSWDLoader* loader, uint32_t nBits, unsigned nBitCount) {
-    SetModePin(&loader->m_DataPin, GPIOModeOutput, false);
+    SetModePin(&loader->m_DataPin, GPIOModeOutput, 0);
     while (nBitCount--) {
         WritePin(&loader->m_DataPin, nBits & 1);
         WriteClock(loader);
@@ -394,7 +386,7 @@ void WriteBits(struct CSWDLoader* loader, uint32_t nBits, unsigned nBitCount) {
 }
 
 uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount) {
-    SetModePin(&loader->m_DataPin, GPIOModeInput, false);
+    SetModePin(&loader->m_DataPin, GPIOModeInput, 0);
     uint32_t nBits = 0;
     unsigned nRemaining = nBitCount--;
     while (nRemaining--) {

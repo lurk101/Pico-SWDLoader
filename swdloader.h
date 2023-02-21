@@ -1,9 +1,6 @@
 //
 // swdloader.h
 //
-// Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2021  R. Stange <rsta2@o2online.de>
-//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -37,12 +34,12 @@ struct CSWDLoader {
     struct CGPIOPin m_DataPin;
 };
 
-    /// \param nClockPin GPIO pin to which SWCLK is connected
-    /// \param nDataPin GPIO pin to which SWDIO is connected
-    /// \param nResetPin Optional GPIO pin to which RESET (RUN) is connected
-    /// (active LOW) \param nClockRateKHz Requested interface clock rate in KHz
-    /// \note GPIO pin numbers are SoC number, not header positions.
-    /// \note The actual clock rate may be smaller than the requested.
+/// \param nClockPin GPIO pin to which SWCLK is connected
+/// \param nDataPin GPIO pin to which SWDIO is connected
+/// \param nResetPin Optional GPIO pin to which RESET (RUN) is connected
+/// (active LOW) \param nClockRateKHz Requested interface clock rate in KHz
+/// \note GPIO pin numbers are SoC number, not header positions.
+/// \note The actual clock rate may be smaller than the requested.
 int SWDInitialize(struct CSWDLoader* loader, unsigned nClockPin,
                   unsigned nDataPin, unsigned nResetPin,
                   unsigned nClockRateKHz);

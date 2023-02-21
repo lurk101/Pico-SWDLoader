@@ -4,10 +4,10 @@ LDFLAGS =
 LDLIBS = -lpigpio
  
 swdloader: main.o swdloader.o gpiopin.o
-	$(CXX) $(LDFLAGS) -o swdloader main.o swdloader.o gpiopin.o $(LDLIBS)
+	$(CC) $(LDFLAGS) -o swdloader main.o swdloader.o gpiopin.o $(LDLIBS)
  
-main.o: main.cpp swdloader.h
-	$(CXX) $(CFLAGS) -c main.cpp
+main.o: main.c swdloader.h
+	$(CC) $(CFLAGS) -c main.c
  
 swdloader.o: swdloader.c swdloader.h gpiopin.h
 	$(CC) $(CFLAGS) -c swdloader.c

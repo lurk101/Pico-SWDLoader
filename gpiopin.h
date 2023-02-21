@@ -1,9 +1,6 @@
 //
 // gpiopin.h
 //
-// Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2020  R. Stange <rsta2@o2online.de>
-//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -50,9 +47,9 @@ struct CGPIOPin {
     enum TGPIOMode m_Mode;
 };
 
-    /// \param nPin Pin number, can be physical (Broadcom) number or
-    /// TGPIOVirtualPin \param Mode Pin mode to be set \param pManager Is only
-    /// required for using interrupts (IRQ)
+/// \param nPin Pin number, can be physical (Broadcom) number or
+/// TGPIOVirtualPin \param Mode Pin mode to be set \param pManager Is only
+/// required for using interrupts (IRQ)
 void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode);
 
 /// \param nPin Pin number, can be physical (Broadcom) number or
