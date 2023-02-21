@@ -1,6 +1,6 @@
 CC = g++
-CFLAGS = -Wall -g
-#CFLAGS = -Wall -O3
+#CFLAGS = -Wall -g
+CFLAGS = -Wall -O3 -flto
  
 swdloader: main.o swdloader.o gpiopin.o
 	$(CC) $(CFLAGS) -o swdloader main.o swdloader.o gpiopin.o -lpigpio
