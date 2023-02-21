@@ -173,7 +173,7 @@ bool CSWDLoader::Load(const void* pProgram, size_t nProgSize,
         return false;
     }
 
-	printf("Loading ");
+    printf("Loading ");
     const auto nStartTicks = chrono::system_clock::now();
 
     if (!LoadChunk(pProgram, nProgSize, nAddress)) {
@@ -220,8 +220,8 @@ bool CSWDLoader::LoadChunk(const void* pChunk, size_t nChunkSize,
 
     assert((nChunkSize & 3) == 0);
     while (nChunkSize > 0) {
-		printf(".");
-		fflush(stdout);
+        printf(".");
+        fflush(stdout);
         BeginTransaction();
 
         if (!WriteData(WR_AP_TAR, nAddress)) {
@@ -270,7 +270,7 @@ bool CSWDLoader::LoadChunk(const void* pChunk, size_t nChunkSize,
 }
 
 bool CSWDLoader::Start(uint32_t nAddress) {
-	printf("Starting\n");
+    printf("Starting\n");
     BeginTransaction();
 
     if (!WriteMem(DCRDR, nAddress) ||
@@ -405,13 +405,9 @@ void CSWDLoader::SelectTarget(uint32_t nCPUAPID, uint8_t uchInstanceID) {
     WriteBits(__builtin_parity(nWData), 1);
 }
 
-void CSWDLoader::BeginTransaction(void) { 
-	WriteIdle(); 
-}
+void CSWDLoader::BeginTransaction(void) { WriteIdle(); }
 
-void CSWDLoader::EndTransaction(void) { 
-	WriteIdle(); 
-}
+void CSWDLoader::EndTransaction(void) { WriteIdle(); }
 
 // Leaving dormant state and switch to SW-DP ([1] section B5.3.4)
 void CSWDLoader::Dormant2SWD(void) {
@@ -433,39 +429,38 @@ void CSWDLoader::LineReset(void) {
 }
 
 void CSWDLoader::WriteIdle(void) {
-	WriteBits (0, 8);
-	m_ClockPin.Write (LOW);
-	m_DataPin.SetMode (GPIOModeOutput, false);
-	m_DataPin.Write (LOW);
+    WriteBits(0, 8);
+    m_ClockPin.Write(LOW);
+    m_DataPin.SetMode(GPIOModeOutput, false);
+    m_DataPin.Write(LOW);
 }
 
 void CSWDLoader::WriteBits(uint32_t nBits, unsigned nBitCount) {
-	m_DataPin.SetMode (GPIOModeOutput, false);
-	while (nBitCount--)
-	{
-		m_DataPin.Write (nBits & 1);
-		WriteClock ();
-		nBits >>= 1;
-	}
+    m_DataPin.SetMode(GPIOModeOutput, false);
+    while (nBitCount--) {
+        m_DataPin.Write(nBits & 1);
+        WriteClock();
+        nBits >>= 1;
+    }
 }
 
 uint32_t CSWDLoader::ReadBits(unsigned nBitCount) {
-	m_DataPin.SetMode (GPIOModeInput, false);
-	uint32_t nBits = 0;
-	unsigned nRemaining = nBitCount--;
-	while (nRemaining--)
-	{
-		unsigned nLevel = m_DataPin.Read ();
-		WriteClock ();
-		nBits >>= 1;
-		nBits |= nLevel << nBitCount;
-	}
-	return nBits;
+    m_DataPin.SetMode(GPIOModeInput, false);
+    uint32_t nBits = 0;
+    unsigned nRemaining = nBitCount--;
+    while (nRemaining--) {
+        unsigned nLevel = m_DataPin.Read();
+        WriteClock();
+        nBits >>= 1;
+        nBits |= nLevel << nBitCount;
+    }
+    return nBits;
 }
 
 void CSWDLoader::WriteClock(void) {
+    const struct timespec ts = {0, m_nDelayNanos};
     m_ClockPin.Write(LOW);
-	usleep(1);
+    nanosleep(&ts, NULL);
     m_ClockPin.Write(HIGH);
-	usleep(1);
+    nanosleep(&ts, NULL);
 }

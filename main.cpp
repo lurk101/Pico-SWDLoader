@@ -49,7 +49,7 @@ int main(int ac, char* av[]) {
         exit(-1);
     }
     close(fd);
-	gpioInitialise();
+    gpioInitialise();
     CSWDLoader loader(swclk_gpio, swdio_gpio, RESET_PIN, 1000);
     loader.Initialize();
     if (!loader.Load(image, f_size, RP2040_RAM_BASE)) {
