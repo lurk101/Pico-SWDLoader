@@ -28,6 +28,12 @@ void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode) {
     SetModePin(pin, Mode, 1);
 }
 
+void DeInitPin(struct CGPIOPin* pin) {
+    SetModePin(pin, GPIOModeInput, 0);
+    gpiod_line_release(pin->m_Line);
+    gpiod_chip_close(pin->m_Chip);
+}
+
 void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
     assert(nPin < GPIO_PINS);
     pin->m_nPin = nPin;

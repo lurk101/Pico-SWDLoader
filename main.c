@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -12,7 +13,22 @@
 
 #define RP2040_RAM_BASE 0x20000000U
 
+static int fd = -1;
+static int swdInitialized = 0;
+static struct CSWDLoader loader;
+
+static void INThandler(int sig) {
+    signal(sig, SIG_IGN);
+    fprintf(stderr, "\nInterrupted!\n");
+    if (swdInitialized)
+        SWDDeInitialise(&loader);
+    if (fd >= 0)
+        close(fd);
+    exit(-1);
+}
+
 int main(int ac, char* av[]) {
+    signal(SIGINT, INThandler);
     int swdio_gpio = SWDIO_PIN, swclk_gpio = SWCLK_PIN, rc = -1;
     char* f_name;
     if (ac < 2) {
@@ -32,7 +48,7 @@ int main(int ac, char* av[]) {
         swdio_gpio = atoi(av[2]);
     if (ac > 3)
         swclk_gpio = atoi(av[3]);
-    int fd = open(f_name, 0);
+    fd = open(f_name, 0);
     if (fd < 0) {
         fprintf(stderr, "Can't open %s\n", f_name);
         exit(-1);
@@ -53,11 +69,12 @@ int main(int ac, char* av[]) {
         fprintf(stderr, "Not enough memory\n");
         goto exit_fd;
     }
-    struct CSWDLoader loader;
     if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
         fprintf(stderr, "Firmware init failed\n");
         goto exit_swd;
     }
+    swdInitialized = 1;
+    printf("SWD dio = GPIO%d, clk = GPIO%d\n", swdio_gpio, swclk_gpio);
     if (!SWDLoad(&loader, image, f_size, RP2040_RAM_BASE)) {
         fprintf(stderr, "Firmware load failed\n");
         goto exit_swd;

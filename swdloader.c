@@ -160,10 +160,10 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
 }
 
 void SWDDeInitialise(struct CSWDLoader* loader) {
-    SetModePin(&loader->m_DataPin, GPIOModeInput, 1);
-    SetModePin(&loader->m_ClockPin, GPIOModeInput, 1);
+    DeInitPin(&loader->m_DataPin);
+    DeInitPin(&loader->m_ClockPin);
     if (loader->m_bResetAvailable)
-        SetModePin(&loader->m_ResetPin, GPIOModeInput, 1);
+        DeInitPin(&loader->m_ResetPin);
 }
 
 int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
