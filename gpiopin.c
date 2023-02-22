@@ -34,67 +34,29 @@ void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
 void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
     assert(Mode < GPIOModeUnknown);
     pin->m_Mode = Mode;
-    if (bInitPin && pin->m_Mode == GPIOModeOutput)
-        SetPullModePin(pin, GPIOPullModeOff);
     switch (Mode) {
     case GPIOModeInput:
-    case GPIOModeInputPullUp:
-    case GPIOModeInputPullDown:
         gpioSetMode(pin->m_nPin, PI_INPUT);
         break;
     case GPIOModeOutput:
         gpioSetMode(pin->m_nPin, PI_OUTPUT);
+        if (bInitPin)
+            WritePin(pin, LOW);
         /* fall-through */
     default:
         break;
     }
-
-    if (bInitPin)
-        switch (Mode) {
-        case GPIOModeInput:
-            SetPullModePin(pin, GPIOPullModeOff);
-            break;
-        case GPIOModeOutput:
-            WritePin(pin, LOW);
-            break;
-        case GPIOModeInputPullUp:
-            SetPullModePin(pin, GPIOPullModeUp);
-            break;
-        case GPIOModeInputPullDown:
-            SetPullModePin(pin, GPIOPullModeDown);
-            /* fall-through */
-        default:
-            break;
-        }
 }
 
 void WritePin(struct CGPIOPin* pin, unsigned nValue) {
     assert(pin->m_nPin < GPIO_PINS);
     assert(pin->m_Mode < GPIOModeUnknown);
     assert(nValue == LOW || nValue == HIGH);
-    gpioWrite(pin->m_nPin, nValue == LOW ? 0 : 1);
+    gpioWrite(pin->m_nPin, nValue);
 }
 
 unsigned ReadPin(struct CGPIOPin* pin) {
     assert(pin->m_nPin < GPIO_PINS);
-    assert(pin->m_Mode == GPIOModeInput || pin->m_Mode == GPIOModeInputPullUp ||
-           pin->m_Mode == GPIOModeInputPullDown);
-    return gpioRead(pin->m_nPin) ? HIGH : LOW;
-}
-
-void SetPullModePin(struct CGPIOPin* pin, enum TGPIOPullMode Mode) {
-    assert(pin->m_nPin < GPIO_PINS);
-    switch (Mode) {
-    case GPIOPullModeOff:
-        gpioSetPullUpDown(pin->m_nPin, PI_PUD_OFF);
-        break;
-    case GPIOPullModeUp:
-        gpioSetPullUpDown(pin->m_nPin, PI_PUD_UP);
-        break;
-    case GPIOPullModeDown:
-        gpioSetPullUpDown(pin->m_nPin, PI_PUD_DOWN);
-        /* fall-through */
-    default:
-        break;
-    }
+    assert(pin->m_Mode == GPIOModeInput);
+    return gpioRead(pin->m_nPin);
 }

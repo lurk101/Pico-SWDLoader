@@ -128,7 +128,6 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
         WritePin(&loader->m_ResetPin, HIGH);
         SetModePin(&loader->m_ResetPin, GPIOModeOutput, 0);
     }
-    SetPullModePin(&loader->m_DataPin, GPIOPullModeUp);
     if (loader->m_bResetAvailable) {
         const struct timespec ts = {0, 10000000};
         nanosleep(&ts, NULL);

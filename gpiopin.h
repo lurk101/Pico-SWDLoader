@@ -30,16 +30,7 @@ extern "C" {
 enum TGPIOMode {
     GPIOModeInput,
     GPIOModeOutput,
-    GPIOModeInputPullUp,
-    GPIOModeInputPullDown,
     GPIOModeUnknown
-};
-
-enum TGPIOPullMode {
-    GPIOPullModeOff,
-    GPIOPullModeDown,
-    GPIOPullModeUp,
-    GPIOPullModeUnknown
 };
 
 struct CGPIOPin {
@@ -60,9 +51,6 @@ void AssignPin(struct CGPIOPin* pin, unsigned nPin);
 /// \param Mode Pin mode to be set
 /// \param bInitPin Also init pullup/down mode and output level
 void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin);
-
-/// \param Mode Pull mode to be set
-void SetPullModePin(struct CGPIOPin* pin, enum TGPIOPullMode Mode);
 
 /// \param nValue Value to be written to the pin (LOW or HIGH)
 void WritePin(struct CGPIOPin* pin, unsigned nValue);
