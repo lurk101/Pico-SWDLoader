@@ -23,19 +23,20 @@ extern "C" {
 
 #include <stdint.h>
 
+#include <gpiod.h>
+
 #define GPIO_PINS 54
 #define LOW 0
 #define HIGH 1
 
-enum TGPIOMode {
-    GPIOModeInput,
-    GPIOModeOutput,
-    GPIOModeUnknown
-};
+enum TGPIOMode { GPIOModeInput, GPIOModeOutput, GPIOModeUnknown };
 
 struct CGPIOPin {
     unsigned m_nPin;
     enum TGPIOMode m_Mode;
+    unsigned m_nLastWrite;
+    struct gpiod_chip* m_Chip;
+    struct gpiod_line* m_Line;
 };
 
 /// \param nPin Pin number, can be physical (Broadcom) number or

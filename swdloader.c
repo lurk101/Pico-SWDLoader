@@ -20,8 +20,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <gpiod.h>
-
 #include "swdloader.h"
 
 // References:

@@ -4,8 +4,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include <pigpio.h>
-
 #include "swdloader.h"
 
 #define SWCLK_PIN 25
@@ -55,7 +53,6 @@ int main(int ac, char* av[]) {
         fprintf(stderr, "Not enough memory\n");
         goto exit_fd;
     }
-    gpioInitialise();
     struct CSWDLoader loader;
     if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
         fprintf(stderr, "Firmware init failed\n");

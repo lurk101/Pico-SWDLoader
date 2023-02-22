@@ -1,7 +1,7 @@
 #CFLAGS = -Wall -g
 CFLAGS = -Wall -O3 -flto
 LDFLAGS =
-LDLIBS = -lpigpio
+LDLIBS = -lgpiod
  
 swdloader: main.o swdloader.o gpiopin.o
 	$(CC) $(LDFLAGS) -o swdloader main.o swdloader.o gpiopin.o $(LDLIBS)
