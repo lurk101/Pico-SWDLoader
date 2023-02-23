@@ -8,20 +8,20 @@ CFLAGS += -DRESET_PIN=0 # 0 for none
 CFLAGS += -DRAM_BASE=0x20000000U
 CFLAGS += -DUSE_LIBPIGPIO
 LDLIBS = -lpigpio
- 
+
 LDFLAGS =
 #LDFLAGS = -static
 
-swdloader: main.o swdloader.o gpiopin.o Makefile
+swdloader: main.o swdloader.o gpiopin.o
 	$(CC) $(LDFLAGS) -o swdloader main.o swdloader.o gpiopin.o $(LDLIBS)
- 
-main.o: main.c swdloader.h Makefile
+
+main.o: main.c swdloader.h
 	$(CC) $(CFLAGS) -c main.c
- 
-swdloader.o: swdloader.c swdloader.h gpiopin.h Makefile
+
+swdloader.o: swdloader.c swdloader.h gpiopin.h
 	$(CC) $(CFLAGS) -c swdloader.c
- 
-gpiopin.o: gpiopin.c gpiopin.h Makefile
+
+gpiopin.o: gpiopin.c gpiopin.h
 	$(CC) $(CFLAGS) -c gpiopin.c
 
 clean:

@@ -65,6 +65,9 @@ int main(int ac, char* av[]) {
         goto exit_fd;
     }
 #if defined(USE_LIBPIGPIO)
+    int cfg = gpioCfgGetInternals();
+    cfg |= PI_CFG_NOSIGHANDLER; // (1<<10)
+    gpioCfgSetInternals(cfg);
     if (gpioInitialise() < 0) {
         fprintf(stderr, "Pigpio initialization failed!\n");
         goto exit_fd;
