@@ -44,3 +44,11 @@ Help
 ```
 ./swdloader
 ```
+
+NOTE: Using the generic (libgpiod) version
+
+Each SoC has one or more gpio blocks each supporting a given number of lines. For example, the Pi4 has 2 gpio blocks,
+the 1st with 58 lines and the 2nd with 8 lines. On the other hand the rock-5b has 5 gpio block with 32 lines each and
+a 6th gpio block with 3 lines. In both these SoC the logical gpio numbers are mapped directly onto these blocks so
+it is possible to calculate the line and block indices. Not all SoC necessarilly work this way! You can get some
+idea of the mapping using the gpioinfo command.
