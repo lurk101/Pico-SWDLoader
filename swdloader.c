@@ -117,11 +117,21 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
                   unsigned nClockRateKHz) {
     loader->m_bResetAvailable = nResetPin != 0;
     loader->m_nDelayNanos = 1000000U / nClockRateKHz / 2;
-    InitPin(&loader->m_ClockPin, nClockPin, GPIOModeOutput);
-    InitPin(&loader->m_DataPin, nDataPin, GPIOModeOutput);
+    int dev = 0;
+#if !defined(USE_LIBPIGPIO)
+    dev = SWCLK_DEVICE;
+#endif
+    InitPin(&loader->m_ClockPin, nClockPin, GPIOModeOutput, dev);
+#if !defined(USE_LIBPIGPIO)
+    dev = SWDIO_DEVICE;
+#endif
+    InitPin(&loader->m_DataPin, nDataPin, GPIOModeOutput, dev);
     if (loader->m_bResetAvailable) {
         WritePin(&loader->m_ResetPin, LOW);
-        InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput);
+#if !defined(USE_LIBPIGPIO)
+        dev = SWRST_DEVICE;
+#endif
+        InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput, dev);
         const struct timespec ts = {0, 10000000};
         nanosleep(&ts, NULL);
         WritePin(&loader->m_ResetPin, HIGH);

@@ -15,16 +15,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <assert.h>
+#include <stdio.h>
 
 #include "gpiopin.h"
 
-#define CHIPNAME "gpiochip0"
+#define CHIPNAME "gpiochip"
 #define CONSUMER "SWD"
 
-void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode) {
+void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode,
+             int dev) {
     pin->m_nPin = GPIO_PINS;
     pin->m_Mode = GPIOModeUnknown;
-    AssignPin(pin, nPin);
+    AssignPin(pin, nPin, dev);
     SetModePin(pin, Mode, 1);
 }
 
@@ -36,11 +38,13 @@ void DeInitPin(struct CGPIOPin* pin) {
 #endif
 }
 
-void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
+void AssignPin(struct CGPIOPin* pin, unsigned nPin, int dev) {
     assert(nPin < GPIO_PINS);
     pin->m_nPin = nPin;
 #if defined(USE_LIBGPIOD)
-    pin->m_Chip = gpiod_chip_open_by_name(CHIPNAME);
+    char buf[16];
+    sprintf(buf, CHIPNAME "%d", dev);
+    pin->m_Chip = gpiod_chip_open_by_name(buf);
     assert(pin->m_Chip);
     pin->m_Line = gpiod_chip_get_line(pin->m_Chip, nPin);
     assert(pin->m_Line);
