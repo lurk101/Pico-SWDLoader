@@ -199,42 +199,38 @@ int SWDLoadChunk(struct CSWDLoader* loader, const void* pChunk,
                  size_t nChunkSize, uint32_t nAddress) {
     assert(pChunk != 0);
     assert((nChunkSize & 3) == 0);
-    const uint32_t* pChunk32 = (const uint32_t*)pChunk;
-    uint32_t nFirstWord = *pChunk32;
-    uint32_t nAddressCopy = nAddress;
-    while (nChunkSize > 0) {
+    int iChunkSize = nChunkSize;
+    uint32_t* pChunk32 = (uint32_t*)pChunk;
+    while (iChunkSize > 0) {
         printf("\rLoading @ 0x%08x", nAddress);
         fflush(stdout);
         BeginTransaction(loader);
         if (!WriteData(loader, WR_AP_TAR, nAddress)) {
-            fprintf(stderr, "Cannot write TAR (0x%X)\n", nAddress);
+            fprintf(stderr, "\nCannot write TAR (0x%X)\n", nAddress);
             return 0;
         }
-        const size_t BlockSize = 1024;
-        for (unsigned i = 0; i < BlockSize; i += 4) {
+        int nBlockSize = 1024;
+        if (iChunkSize < nBlockSize)
+            nBlockSize = iChunkSize;
+        uint32_t* pChunk32_save = pChunk32;
+        for (unsigned i = 0; i < nBlockSize; i += 4)
             if (!WriteData(loader, WR_AP_DRW, *pChunk32++)) {
-                fprintf(stderr, "Memory write failed (0x%X)\n", nAddress);
+                fprintf(stderr, "\nMemory write failed (0x%X)\n", nAddress);
                 return 0;
             }
-            if (nChunkSize > 4)
-                nChunkSize -= 4;
-            else {
-                nChunkSize = 0;
-                break;
-            }
-        }
-        nAddress += BlockSize;
         EndTransaction(loader);
-    }
-    BeginTransaction(loader);
-    uint32_t nFirstWordRead;
-    if (!ReadMem(loader, nAddressCopy, &nFirstWordRead))
-        fprintf(stderr, "Memory read failed (0x%X)\n", nAddressCopy);
-    EndTransaction(loader);
-    if (nFirstWord != nFirstWordRead) {
-        fprintf(stderr, "Data mismatch (0x%X != 0x%X)\n", nFirstWord,
-                nFirstWordRead);
-        return 0;
+        BeginTransaction(loader);
+        uint32_t nWordRead;
+        if (!ReadMem(loader, nAddress, &nWordRead))
+            fprintf(stderr, "\nMemory read failed (0x%X)\n", nAddress);
+        EndTransaction(loader);
+        if (nWordRead != *pChunk32_save) {
+            fprintf(stderr, "\nData mismatch (0x%X != 0x%X)\n", nWordRead,
+                    *pChunk32_save);
+            return 0;
+        }
+        nAddress += nBlockSize;
+        iChunkSize -= nBlockSize;
     }
     return 1;
 }

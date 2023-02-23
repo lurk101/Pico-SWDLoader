@@ -67,7 +67,7 @@ void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
     assert(Mode < GPIOModeUnknown);
     if (Mode == pin->m_Mode && !bInitPin)
         return;
-    // on the fly direction change not supported!!!
+        // on the fly direction change not supported!!!
 #if defined(USE_LIBGPIOD)
     gpiod_line_release(pin->m_Line);
     pin->m_Mode = Mode;

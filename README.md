@@ -10,7 +10,10 @@ swdio GPIO24. swclk GPIO25
 sudo apt install libpigpio-dev ## only if not already installed
 git clone https://github.com/lurk101/Pico-SWDLoader.git
 cd Pico-SWDLoader
-make -f MAkefile.pigpio
+mkdir build
+cd build
+cmake .. -DUSE=pi-pigpio
+make
 ```
 
 For generic Linux SBC (works on Pi)
@@ -20,7 +23,10 @@ swdio GPIO24. swclk GPIO25
 sudo apt install libgpiod-dev ## only if not already installed
 git clone https://github.com/lurk101/Pico-SWDLoader.git
 cd Pico-SWDLoader
-make -f MAkefile.gpiod
+mkdir build
+cd build
+cmake .. -DUSE=pi-gpiod
+make
 ```
 
 For generic Linux on rock-5b
@@ -30,7 +36,10 @@ swdio GPIO44. swclk GPIO45, swrst GPIO149
 sudo apt install libgpiod-dev ## only if not already installed
 git clone https://github.com/lurk101/Pico-SWDLoader.git
 cd Pico-SWDLoader
-make -f MAkefile.rock-5b
+mkdir build
+cd build
+cmake .. -DUSE=rock-5b-gpiod
+make
 ```
 
 Running using default GPIOs

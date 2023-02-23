@@ -23,6 +23,8 @@
 
 #include "swdloader.h"
 
+#define RAM_BASE 0x20000000u
+
 static int fd = -1;
 static int swdInitialized = 0;
 static struct CSWDLoader loader;
