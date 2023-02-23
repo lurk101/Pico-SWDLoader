@@ -53,13 +53,13 @@ struct CGPIOPin {
 /// \param nPin Pin number, can be physical (Broadcom) number or
 /// TGPIOVirtualPin \param Mode Pin mode to be set \param pManager Is only
 /// required for using interrupts (IRQ)
-void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode, int dev);
+void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode);
 void DeInitPin(struct CGPIOPin* pin);
 
 /// \param nPin Pin number, can be physical (Broadcom) number or
 /// TGPIOVirtualPin \note To be used together with the default constructor
 /// and SetMode()
-void AssignPin(struct CGPIOPin* pin, unsigned nPin, int dev);
+void AssignPin(struct CGPIOPin* pin, unsigned nPin);
 
 /// \param Mode Pin mode to be set
 /// \param bInitPin Also init pullup/down mode and output level

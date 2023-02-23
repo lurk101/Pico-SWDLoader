@@ -23,11 +23,10 @@
 #define CONSUMER "SWD"
 #define PICO_GPIO_PINS 54
 
-void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode,
-             int dev) {
+void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode) {
     pin->m_nPin = INT_MAX;
     pin->m_Mode = GPIOModeUnknown;
-    AssignPin(pin, nPin, dev);
+    AssignPin(pin, nPin);
     SetModePin(pin, Mode, 1);
 }
 
@@ -39,18 +38,27 @@ void DeInitPin(struct CGPIOPin* pin) {
 #endif
 }
 
-void AssignPin(struct CGPIOPin* pin, unsigned nPin, int dev) {
+void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
 #if defined(USE_LIBPIGPIO)
     assert(nPin < PICO_GPIO_PINS);
 #endif
     pin->m_nPin = nPin;
 #if defined(USE_LIBGPIOD)
-    char buf[16];
-    sprintf(buf, "gpiochip%d", dev);
-    pin->m_Chip = gpiod_chip_open_by_name(buf);
+    int dev = 0;
+    for (;;) {
+        char buf[16];
+        sprintf(buf, "gpiochip%d", (uint8_t)dev);
+        pin->m_Chip = gpiod_chip_open_by_name(buf);
+        assert(pin->m_Chip);
+        int lines = gpiod_chip_num_lines(pin->m_Chip);
+        if (pin->m_nPin < lines)
+            break;
+        gpiod_chip_close(pin->m_Chip);
+        pin->m_nPin -= lines;
+        dev++;
+    }
     assert(pin->m_Chip);
-    assert(nPin < gpiod_chip_num_lines(pin->m_Chip));
-    pin->m_Line = gpiod_chip_get_line(pin->m_Chip, nPin);
+    pin->m_Line = gpiod_chip_get_line(pin->m_Chip, pin->m_nPin);
     assert(pin->m_Line);
 #endif
 }
