@@ -41,14 +41,15 @@ static void INThandler(int sig) {
 
 int main(int ac, char* av[]) {
     signal(SIGINT, INThandler);
-    int swdio_gpio = SWDIO_PIN, swclk_gpio = SWCLK_PIN, rc = -1;
+    int swdio_gpio = SWDIO_GPIO, swclk_gpio = SWCLK_GPIO,
+        swrst_gpio = SWRST_GPIO, rc = -1;
     char* f_name;
     if (ac < 2) {
-        fprintf(
-            stderr,
-            "Usage: swdloader image_file_name [ swdio_gpio [ swclk_gpio ]]\n"
-            "  Defaults: swdio = GPIO%d, swclk = GPIO%d\n",
-            SWDIO_PIN, SWCLK_PIN);
+        fprintf(stderr,
+                "Usage: swdloader image_file_name [ swdio_gpio [ swclk_gpio [ "
+                "swrst_gpio ]]]\n"
+                "  Defaults: swdio = GPIO%d, swclk = GPIO%d\n",
+                SWDIO_GPIO, SWCLK_GPIO);
         exit(-1);
     }
     if (geteuid() != 0) {
@@ -91,7 +92,7 @@ int main(int ac, char* av[]) {
         goto exit_fd;
     }
 #endif
-    if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
+    if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, swrst_gpio, 1000)) {
         fprintf(stderr, "Firmware init failed\n");
         goto exit_swd;
     }
