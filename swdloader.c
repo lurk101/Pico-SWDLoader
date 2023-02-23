@@ -155,9 +155,11 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
 void SWDDeInitialise(struct CSWDLoader* loader) {
     DeInitPin(&loader->m_DataPin);
     DeInitPin(&loader->m_ClockPin);
+#if defined(USE_LIBPIGPIO)
     // Leave reset high
-    // if (loader->m_bResetAvailable)
-    //    DeInitPin(&loader->m_ResetPin);
+    if (loader->m_bResetAvailable)
+        DeInitPin(&loader->m_ResetPin);
+#endif
 }
 
 int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
@@ -376,7 +378,7 @@ void WriteBits(struct CSWDLoader* loader, uint32_t nBits, unsigned nBitCount) {
 }
 
 uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount) {
-    SetModePin(&loader->m_DataPin, GPIOModeInput, 0);
+    SetModePin(&loader->m_DataPin, GPIOModeInputPullUp, 0);
     uint32_t nBits = 0;
     unsigned nRemaining = nBitCount--;
     while (nRemaining--) {

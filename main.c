@@ -64,6 +64,12 @@ int main(int ac, char* av[]) {
         fprintf(stderr, "Not enough memory\n");
         goto exit_fd;
     }
+#if defined(USE_LIBPIGPIO)
+    if (gpioInitialise() < 0) {
+        fprintf(stderr, "Pigpio initialization failed!\n");
+        goto exit_fd;
+    }
+#endif
     if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, RESET_PIN, 1000)) {
         fprintf(stderr, "Firmware init failed\n");
         goto exit_swd;
@@ -77,6 +83,9 @@ int main(int ac, char* av[]) {
     rc = 0;
 exit_swd:
     SWDDeInitialise(&loader);
+#if defined(USE_LIBPIGPIO)
+    gpioTerminate();
+#endif
 exit_fd:
     close(fd);
     return rc;

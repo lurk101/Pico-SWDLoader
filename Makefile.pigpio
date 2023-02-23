@@ -1,14 +1,17 @@
 #CFLAGS = -Wall -g
 CFLAGS = -Wall -O3 -flto
-LDFLAGS =
-LDLIBS = -lgpiod
 
 CFLAGS += -DSWCLK_PIN=25
 CFLAGS += -DSWDIO_PIN=24
 CFLAGS += -DRESET_PIN=0 # 0 for none
 #CFLAGS += -DRESET_PIN=23
 CFLAGS += -DRAM_BASE=0x20000000U
+CFLAGS += -DUSE_LIBPIGPIO
+LDLIBS = -lpigpio
  
+LDFLAGS =
+#LDFLAGS = -static
+
 swdloader: main.o swdloader.o gpiopin.o Makefile
 	$(CC) $(LDFLAGS) -o swdloader main.o swdloader.o gpiopin.o $(LDLIBS)
  

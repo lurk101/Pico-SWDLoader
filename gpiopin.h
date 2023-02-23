@@ -22,21 +22,33 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-
+#if defined(USE_LIBGPIOD)
 #include <gpiod.h>
+#elif defined(USE_LIBPIGPIO)
+#include <pigpio.h>
+#else
+#error Must define USE_LIBGPIOD or USE_LIBPIGPIO
+#endif
 
 #define GPIO_PINS 54
 #define LOW 0
 #define HIGH 1
 
-enum TGPIOMode { GPIOModeInput, GPIOModeOutput, GPIOModeUnknown };
+enum TGPIOMode {
+    GPIOModeInputPullUp,
+    GPIOModeInputPullNone,
+    GPIOModeOutput,
+    GPIOModeUnknown
+};
 
 struct CGPIOPin {
     unsigned m_nPin;
     enum TGPIOMode m_Mode;
-    unsigned m_nLastWrite;
+#if defined(USE_LIBGPIOD)
     struct gpiod_chip* m_Chip;
     struct gpiod_line* m_Line;
+    unsigned m_nLastWrite;
+#endif
 };
 
 /// \param nPin Pin number, can be physical (Broadcom) number or
