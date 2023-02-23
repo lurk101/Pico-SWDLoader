@@ -7,12 +7,6 @@
 
 #include "swdloader.h"
 
-#define SWCLK_PIN 25
-#define SWDIO_PIN 24
-#define RESET_PIN 0 // 0 for none
-
-#define RP2040_RAM_BASE 0x20000000U
-
 static int fd = -1;
 static int swdInitialized = 0;
 static struct CSWDLoader loader;
@@ -63,7 +57,8 @@ int main(int ac, char* av[]) {
         goto exit_fd;
     }
     lseek(fd, 0, SEEK_SET);
-    printf("Image size %lu bytes\n", f_size);
+    printf("Image size %lu bytes (0x%08x-0x%08x)\n", f_size, RAM_BASE,
+           RAM_BASE + (unsigned int)f_size);
     char* image = (char*)mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (image == MAP_FAILED) {
         fprintf(stderr, "Not enough memory\n");
@@ -75,7 +70,7 @@ int main(int ac, char* av[]) {
     }
     swdInitialized = 1;
     printf("SWD dio = GPIO%d, clk = GPIO%d\n", swdio_gpio, swclk_gpio);
-    if (!SWDLoad(&loader, image, f_size, RP2040_RAM_BASE)) {
+    if (!SWDLoad(&loader, image, f_size, RAM_BASE)) {
         fprintf(stderr, "Firmware load failed\n");
         goto exit_swd;
     }

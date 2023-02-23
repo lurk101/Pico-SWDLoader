@@ -120,16 +120,9 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
     InitPin(&loader->m_ClockPin, nClockPin, GPIOModeOutput);
     InitPin(&loader->m_DataPin, nDataPin, GPIOModeOutput);
     if (loader->m_bResetAvailable) {
-        InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput);
-        AssignPin(&loader->m_ResetPin, nResetPin);
-        SetModePin(&loader->m_ResetPin, GPIOModeInput, 0); // suppress LOW spike
-        WritePin(&loader->m_ResetPin, HIGH);
-        SetModePin(&loader->m_ResetPin, GPIOModeOutput, 0);
-    }
-    if (loader->m_bResetAvailable) {
-        const struct timespec ts = {0, 10000000};
-        nanosleep(&ts, NULL);
         WritePin(&loader->m_ResetPin, LOW);
+        InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput);
+        const struct timespec ts = {0, 10000000};
         nanosleep(&ts, NULL);
         WritePin(&loader->m_ResetPin, HIGH);
         nanosleep(&ts, NULL);
@@ -162,15 +155,15 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
 void SWDDeInitialise(struct CSWDLoader* loader) {
     DeInitPin(&loader->m_DataPin);
     DeInitPin(&loader->m_ClockPin);
-    if (loader->m_bResetAvailable)
-        DeInitPin(&loader->m_ResetPin);
+    // Leave reset high
+    // if (loader->m_bResetAvailable)
+    //    DeInitPin(&loader->m_ResetPin);
 }
 
 int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
             uint32_t nAddress) {
     if (!SWDHalt(loader))
         return 0;
-    printf("Loading ");
     time_t nStart, nEnd;
     time(&nStart);
     if (!SWDLoadChunk(loader, pProgram, nProgSize, nAddress))
@@ -208,7 +201,7 @@ int SWDLoadChunk(struct CSWDLoader* loader, const void* pChunk,
     uint32_t nFirstWord = *pChunk32;
     uint32_t nAddressCopy = nAddress;
     while (nChunkSize > 0) {
-        printf(".");
+        printf("\rLoading @ 0x%08x", nAddress);
         fflush(stdout);
         BeginTransaction(loader);
         if (!WriteData(loader, WR_AP_TAR, nAddress)) {
