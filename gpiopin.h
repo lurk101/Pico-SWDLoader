@@ -30,7 +30,6 @@ extern "C" {
 #error Must define USE_LIBGPIOD or USE_LIBPIGPIO
 #endif
 
-#define GPIO_PINS 54
 #define LOW 0
 #define HIGH 1
 

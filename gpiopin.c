@@ -15,16 +15,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 
 #include "gpiopin.h"
 
-#define CHIPNAME "gpiochip"
 #define CONSUMER "SWD"
+#define PICO_GPIO_PINS 54
 
 void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode,
              int dev) {
-    pin->m_nPin = GPIO_PINS;
+    pin->m_nPin = INT_MAX;
     pin->m_Mode = GPIOModeUnknown;
     AssignPin(pin, nPin, dev);
     SetModePin(pin, Mode, 1);
@@ -39,13 +40,16 @@ void DeInitPin(struct CGPIOPin* pin) {
 }
 
 void AssignPin(struct CGPIOPin* pin, unsigned nPin, int dev) {
-    assert(nPin < GPIO_PINS);
+#if defined(USE_LIBPIGPIO)
+    assert(nPin < PICO_GPIO_PINS);
+#endif
     pin->m_nPin = nPin;
 #if defined(USE_LIBGPIOD)
     char buf[16];
-    sprintf(buf, CHIPNAME "%d", dev);
+    sprintf(buf, "gpiochip%d", dev);
     pin->m_Chip = gpiod_chip_open_by_name(buf);
     assert(pin->m_Chip);
+    assert(nPin < gpiod_chip_num_lines(pin->m_Chip));
     pin->m_Line = gpiod_chip_get_line(pin->m_Chip, nPin);
     assert(pin->m_Line);
 #endif
@@ -114,7 +118,9 @@ void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
 }
 
 void WritePin(struct CGPIOPin* pin, unsigned nValue) {
-    assert(pin->m_nPin < GPIO_PINS);
+#if defined(USE_LIBPIGPIO)
+    assert(pin->m_nPin < PICO_GPIO_PINS);
+#endif
     assert(pin->m_Mode < GPIOModeUnknown);
     assert(nValue == LOW || nValue == HIGH);
 #if defined(USE_LIBGPIOD)
@@ -131,7 +137,9 @@ void WritePin(struct CGPIOPin* pin, unsigned nValue) {
 }
 
 unsigned ReadPin(struct CGPIOPin* pin) {
-    assert(pin->m_nPin < GPIO_PINS);
+#if defined(USE_LIBPIGPIO)
+    assert(pin->m_nPin < PICO_GPIO_PINS);
+#endif
     assert(pin->m_Mode == GPIOModeInputPullUp ||
            pin->m_Mode == GPIOModeInputPullNone);
     int r;
