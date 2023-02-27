@@ -97,7 +97,10 @@ int main(int ac, char* av[]) {
         goto exit_swd;
     }
     swdInitialized = 1;
-    printf("SWD dio = GPIO%d, clk = GPIO%d\n", swdio_gpio, swclk_gpio);
+    printf("SWD dio = GPIO%d, clk = GPIO%d", swdio_gpio, swclk_gpio);
+    if (swrst_gpio)
+        printf(", rst = GPIO%d", swrst_gpio);
+    printf("\n");
     if (!SWDLoad(&loader, image, f_size, RAM_BASE)) {
         fprintf(stderr, "Firmware load failed\n");
         goto exit_swd;

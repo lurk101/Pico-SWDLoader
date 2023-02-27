@@ -12,7 +12,7 @@ git clone https://github.com/lurk101/Pico-SWDLoader.git
 cd Pico-SWDLoader
 mkdir build
 cd build
-cmake .. -DBUILD=pi-pigpio
+cmake .. -DBUILD_FOR=pi-pigpio
 make
 ```
 
@@ -25,7 +25,7 @@ git clone https://github.com/lurk101/Pico-SWDLoader.git
 cd Pico-SWDLoader
 mkdir build
 cd build
-cmake .. -DBUILD=pi-gpiod
+cmake .. -DBUILD_FOR=pi-gpiod
 make
 ```
 
@@ -38,7 +38,7 @@ git clone https://github.com/lurk101/Pico-SWDLoader.git
 cd Pico-SWDLoader
 mkdir build
 cd build
-cmake .. -DBUILD=rock-5b-gpiod
+cmake .. -DBUILD_FOR=rock-5b-gpiod
 make
 ```
 
