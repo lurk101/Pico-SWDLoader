@@ -32,6 +32,8 @@
 
 #define BIT(x) (1 << (x))
 
+#define XIP_CNTL 0x14000000
+
 // SWD-DP Requests
 #define WR_DP_ABORT 0x81
 #define DP_ABORT_STKCMPCLR BIT(1)
@@ -168,6 +170,17 @@ int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
         return 0;
     time_t nStart, nEnd;
     time(&nStart);
+    printf("Disabling XIP\n");
+    BeginTransaction(loader);
+    if (!WriteData(loader, WR_AP_TAR, XIP_CNTL)) {
+        fprintf(stderr, "\nCannot write TAR (0x%X)\n", XIP_CNTL);
+        return 0;
+    }
+    if (!WriteData(loader, WR_AP_DRW, 0)) {
+        fprintf(stderr, "\nMemory write failed (0x%X)\n", XIP_CNTL);
+        return 0;
+    }
+    EndTransaction(loader);
     if (!SWDLoadChunk(loader, pProgram, nProgSize, nAddress))
         return 0;
     time(&nEnd);
