@@ -165,12 +165,18 @@ void SWDDeInitialise(struct CSWDLoader* loader) {
 #endif
 }
 
+static long timediff(clock_t t1, clock_t t2) {
+    long elapsed;
+    elapsed = ((double)t2 - t1) / CLOCKS_PER_SEC * 1000;
+    return elapsed;
+}
+
 int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
             uint32_t nAddress) {
     if (!SWDHalt(loader))
         return 0;
-    time_t nStart, nEnd;
-    time(&nStart);
+    clock_t nStart, nEnd;
+    nStart = clock();
     printf("Disabling XIP and USB\n");
     BeginTransaction(loader);
     if (!WriteData(loader, WR_AP_TAR, XIP_CNTL)) {
@@ -194,9 +200,9 @@ int SWDLoad(struct CSWDLoader* loader, const void* pProgram, size_t nProgSize,
     EndTransaction(loader);
     if (!SWDLoadChunk(loader, pProgram, nProgSize, nAddress))
         return 0;
-    time(&nEnd);
-    double diff_t = difftime(nEnd, nStart);
-    printf("\n%lu bytes loaded in %.0f seconds (%.1f KBytes/s)\n", nProgSize,
+    nEnd = clock();
+    double diff_t = timediff(nStart, nEnd) / 1000.0;
+    printf("\n%lu bytes loaded in %.2f seconds (%.1f KBytes/s)\n", nProgSize,
            diff_t, nProgSize / diff_t / 1024.0);
     return SWDStart(loader, nAddress);
 }
@@ -410,10 +416,19 @@ uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount) {
     return nBits;
 }
 
+#pragma GCC push_options
+#pragma GCC optimize("O0")
+static void delay_nanos(uint32_t n) {
+    n /= 2;
+    while (n) {
+        n--;
+    }
+}
+#pragma GCC pop_options
+
 void WriteClock(struct CSWDLoader* loader) {
-    const struct timespec ts = {0, loader->m_nDelayNanos};
     WritePin(&loader->m_ClockPin, LOW);
-    nanosleep(&ts, NULL);
+    delay_nanos(loader->m_nDelayNanos);
     WritePin(&loader->m_ClockPin, HIGH);
-    nanosleep(&ts, NULL);
+    delay_nanos(loader->m_nDelayNanos);
 }
