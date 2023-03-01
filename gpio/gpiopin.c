@@ -21,7 +21,9 @@
 #include "gpiopin.h"
 
 #define CONSUMER "SWD"
-#define PICO_GPIO_PINS 54
+#define PICO_GPIO_PINS 32
+
+static void AssignPin(struct CGPIOPin* pin, unsigned nPin);
 
 void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode) {
     pin->m_nPin = INT_MAX;
@@ -30,65 +32,22 @@ void InitPin(struct CGPIOPin* pin, unsigned nPin, enum TGPIOMode Mode) {
     SetModePin(pin, Mode, 1);
 }
 
+#if defined(USE_LIBPIGPIO)
+
 void DeInitPin(struct CGPIOPin* pin) {
     SetModePin(pin, GPIOModeInputPullNone, 1);
-#if defined(USE_LIBGPIOD)
-    gpiod_line_release(pin->m_Line);
-    gpiod_chip_close(pin->m_Chip);
-#endif
 }
 
 void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
-#if defined(USE_LIBPIGPIO)
-    assert(nPin < PICO_GPIO_PINS);
-#endif
+    assert(nPin && (nPin < PICO_GPIO_PINS));
     pin->m_nPin = nPin;
-#if defined(USE_LIBGPIOD)
-    int dev = 0;
-    for (;;) {
-        char buf[16];
-        sprintf(buf, "gpiochip%d", (uint8_t)dev);
-        pin->m_Chip = gpiod_chip_open_by_name(buf);
-        assert(pin->m_Chip);
-        int lines = gpiod_chip_num_lines(pin->m_Chip);
-        if (pin->m_nPin < lines)
-            break;
-        gpiod_chip_close(pin->m_Chip);
-        pin->m_nPin -= lines;
-        dev++;
-    }
-    assert(pin->m_Chip);
-    pin->m_Line = gpiod_chip_get_line(pin->m_Chip, pin->m_nPin);
-    assert(pin->m_Line);
-#endif
 }
 
 void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
     assert(Mode < GPIOModeUnknown);
     if (Mode == pin->m_Mode && !bInitPin)
         return;
-        // on the fly direction change not supported!!!
-#if defined(USE_LIBGPIOD)
-    gpiod_line_release(pin->m_Line);
-    pin->m_Mode = Mode;
-    int r;
-    switch (Mode) {
-    case GPIOModeInputPullUp:
-    case GPIOModeInputPullNone:
-        r = gpiod_line_request_input(pin->m_Line, CONSUMER);
-        assert(r >= 0);
-        break;
-    case GPIOModeOutput:
-        if (bInitPin)
-            pin->m_nLastWrite = LOW;
-        r = gpiod_line_request_output(pin->m_Line, CONSUMER, pin->m_nLastWrite);
-        assert(r >= 0);
-        /* fall-through */
-    default:
-        break;
-    }
-#endif
-#if defined(USE_LIBPIGPIO)
+    // on the fly direction change not supported!!!
     pin->m_Mode = Mode;
     int r;
     switch (Mode) {
@@ -122,41 +81,96 @@ void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
     default:
         break;
     }
-#endif
 }
 
 void WritePin(struct CGPIOPin* pin, unsigned nValue) {
-#if defined(USE_LIBPIGPIO)
-    assert(pin->m_nPin < PICO_GPIO_PINS);
-#endif
+    assert(nPin && (nPin < PICO_GPIO_PINS));
     assert(pin->m_Mode < GPIOModeUnknown);
     assert(nValue == LOW || nValue == HIGH);
-#if defined(USE_LIBGPIOD)
+    int r = gpioWrite(pin->m_nPin, nValue);
+    assert(r >= 0);
+}
+
+unsigned ReadPin(struct CGPIOPin* pin) {
+    assert(nPin && (nPin < PICO_GPIO_PINS));
+    assert(pin->m_Mode == GPIOModeInputPullUp ||
+           pin->m_Mode == GPIOModeInputPullNone);
+    int r;
+    r = gpioRead(pin->m_nPin);
+    assert(r >= 0);
+    return r;
+}
+
+#elif defined(USE_LIBGPIOD)
+
+void DeInitPin(struct CGPIOPin* pin) {
+    SetModePin(pin, GPIOModeInputPullNone, 1);
+    gpiod_line_release(pin->m_Line);
+    gpiod_chip_close(pin->m_Chip);
+}
+
+void AssignPin(struct CGPIOPin* pin, unsigned nPin) {
+    pin->m_nPin = nPin;
+    int dev = 0;
+    for (;;) {
+        char buf[16];
+        sprintf(buf, "gpiochip%d", (uint8_t)dev);
+        pin->m_Chip = gpiod_chip_open_by_name(buf);
+        assert(pin->m_Chip);
+        int lines = gpiod_chip_num_lines(pin->m_Chip);
+        if (pin->m_nPin < lines)
+            break;
+        gpiod_chip_close(pin->m_Chip);
+        pin->m_nPin -= lines;
+        dev++;
+    }
+    assert(pin->m_Chip);
+    pin->m_Line = gpiod_chip_get_line(pin->m_Chip, pin->m_nPin);
+    assert(pin->m_Line);
+}
+
+void SetModePin(struct CGPIOPin* pin, enum TGPIOMode Mode, int bInitPin) {
+    assert(Mode < GPIOModeUnknown);
+    if (Mode == pin->m_Mode && !bInitPin)
+        return;
+        // on the fly direction change not supported!!!
+    gpiod_line_release(pin->m_Line);
+    pin->m_Mode = Mode;
+    int r;
+    switch (Mode) {
+    case GPIOModeInputPullUp:
+    case GPIOModeInputPullNone:
+        r = gpiod_line_request_input(pin->m_Line, CONSUMER);
+        assert(r >= 0);
+        break;
+    case GPIOModeOutput:
+        if (bInitPin)
+            pin->m_nLastWrite = LOW;
+        r = gpiod_line_request_output(pin->m_Line, CONSUMER, pin->m_nLastWrite);
+        assert(r >= 0);
+        /* fall-through */
+    default:
+        break;
+    }
+}
+
+void WritePin(struct CGPIOPin* pin, unsigned nValue) {
+    assert(pin->m_Mode < GPIOModeUnknown);
+    assert(nValue == LOW || nValue == HIGH);
     pin->m_nLastWrite = nValue;
     if (pin->m_Mode == GPIOModeOutput) {
         int r = gpiod_line_set_value(pin->m_Line, nValue);
         assert(r >= 0);
     }
-#endif
-#if defined(USE_LIBPIGPIO)
-    int r = gpioWrite(pin->m_nPin, nValue);
-    assert(r >= 0);
-#endif
 }
 
 unsigned ReadPin(struct CGPIOPin* pin) {
-#if defined(USE_LIBPIGPIO)
-    assert(pin->m_nPin < PICO_GPIO_PINS);
-#endif
     assert(pin->m_Mode == GPIOModeInputPullUp ||
            pin->m_Mode == GPIOModeInputPullNone);
     int r;
-#if defined(USE_LIBGPIOD)
     r = gpiod_line_get_value(pin->m_Line);
-#endif
-#if defined(USE_LIBPIGPIO)
-    r = gpioRead(pin->m_nPin);
-#endif
     assert(r >= 0);
     return r;
 }
+
+#endif

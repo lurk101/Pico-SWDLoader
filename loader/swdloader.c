@@ -115,6 +115,19 @@ static void WriteBits(struct CSWDLoader* loader, uint32_t nBits,
 static uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount);
 static void WriteClock(struct CSWDLoader* loader);
 
+static void delay_nanos(uint32_t n) {
+    struct timespec start, now;
+    clock_gettime(CLOCK_REALTIME, &start);
+    uint32_t delta_ns;
+    do {
+        clock_gettime(CLOCK_REALTIME, &now);
+        if (now.tv_sec == start.tv_sec)
+            delta_ns = now.tv_nsec - start.tv_nsec;
+        else
+            delta_ns = 1000000000 + now.tv_nsec - start.tv_nsec;
+    } while (delta_ns < n);
+}
+
 int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
                   unsigned nDataPin, unsigned nResetPin,
                   unsigned nClockRateKHz) {
@@ -124,12 +137,11 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
     InitPin(&loader->m_DataPin, nDataPin, GPIOModeOutput);
     if (loader->m_bResetAvailable) {
         InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput);
-        const struct timespec ts = {0, 10000000};
-        nanosleep(&ts, NULL);
+        delay_nanos(10000000);
         WritePin(&loader->m_ResetPin, LOW);
-        nanosleep(&ts, NULL);
+        delay_nanos(10000000);
         WritePin(&loader->m_ResetPin, HIGH);
-        nanosleep(&ts, NULL);
+        delay_nanos(10000000);
     }
     BeginTransaction(loader);
     Dormant2SWD(loader);
@@ -415,18 +427,6 @@ uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount) {
         nBits |= nLevel << nBitCount;
     }
     return nBits;
-}
-
-static void delay_nanos(uint32_t n) {
-    n *= 1;
-    struct timespec start, now;
-    clock_gettime(CLOCK_REALTIME, &start);
-    uint32_t delta_ns;
-    do {
-        clock_gettime(CLOCK_REALTIME, &now);
-        delta_ns = (now.tv_sec - start.tv_sec) * 1000000000 + now.tv_nsec -
-                   start.tv_nsec;
-    } while (delta_ns < n);
 }
 
 void WriteClock(struct CSWDLoader* loader) {

@@ -24,6 +24,7 @@
 #include "swdloader.h"
 
 #define RAM_BASE 0x20000000u
+#define APROXIMATE_SWD_CLK_KHZ 500
 
 static int fd = -1;
 static int swdInitialized = 0;
@@ -42,25 +43,50 @@ static void INThandler(int sig) {
 int main(int ac, char* av[]) {
     signal(SIGINT, INThandler);
     int swdio_gpio = SWDIO_GPIO, swclk_gpio = SWCLK_GPIO,
-        swrst_gpio = SWRST_GPIO, rc = -1;
+        swrst_gpio = SWRST_GPIO, swfreq = APROXIMATE_SWD_CLK_KHZ, rc = -1;
     char* f_name;
     if (ac < 2) {
+    help:
         fprintf(stderr,
-                "Usage: swdloader image_file_name [ swdio_gpio [ swclk_gpio [ "
-                "swrst_gpio ]]]\n"
-                "  Defaults: swdio = GPIO%d, swclk = GPIO%d\n",
-                SWDIO_GPIO, SWCLK_GPIO);
+                "Usage: swdloader [-d n] [-c n] [-r n] [-f n] image_file_name\n"
+                " -d n  SWD Data IO GPIO # (default = %d)\n"
+                " -c n  SWD Clock GPIO # (default = %d)\n"
+                " -r n  SWD Reset GPIO # (default = %d)\n"
+                " -f n  SWD Clock Frequency in KHz (default = %d)\n",
+                swdio_gpio, swclk_gpio, swrst_gpio, swfreq);
         exit(-1);
     }
+    int opt;
+
+    while ((opt = getopt(ac, av, "d:c:r:f:")) != -1) {
+        switch (opt) {
+        case 'd':
+            swdio_gpio = atoi(optarg);
+            break;
+        case 'c':
+            swclk_gpio = atoi(optarg);
+            break;
+        case 'r':
+            swrst_gpio = atoi(optarg);
+            break;
+        case 'f':
+            swfreq = atoi(optarg);
+            break;
+        default:
+            goto help;
+        }
+    }
+    if (optind >= ac) {
+        fprintf(stderr, "image file name is required\n");
+        goto help;
+    }
+    f_name = av[optind];
+
     if (geteuid() != 0) {
         fprintf(stderr, "swdloader needs root\n");
         exit(-1);
     }
-    f_name = av[1];
-    if (ac > 2)
-        swdio_gpio = atoi(av[2]);
-    if (ac > 3)
-        swclk_gpio = atoi(av[3]);
+
     fd = open(f_name, 0);
     if (fd < 0) {
         fprintf(stderr, "Can't open %s\n", f_name);
@@ -96,7 +122,7 @@ int main(int ac, char* av[]) {
     if (swrst_gpio)
         printf(", rst = GPIO%d", swrst_gpio);
     printf("\n");
-    if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, swrst_gpio, 500)) {
+    if (!SWDInitialise(&loader, swclk_gpio, swdio_gpio, swrst_gpio, swfreq)) {
         fprintf(stderr, "Firmware init failed\n");
         goto exit_swd;
     }
