@@ -123,9 +123,10 @@ int SWDInitialise(struct CSWDLoader* loader, unsigned nClockPin,
     InitPin(&loader->m_ClockPin, nClockPin, GPIOModeOutput);
     InitPin(&loader->m_DataPin, nDataPin, GPIOModeOutput);
     if (loader->m_bResetAvailable) {
-        WritePin(&loader->m_ResetPin, LOW);
         InitPin(&loader->m_ResetPin, nResetPin, GPIOModeOutput);
         const struct timespec ts = {0, 10000000};
+        nanosleep(&ts, NULL);
+        WritePin(&loader->m_ResetPin, LOW);
         nanosleep(&ts, NULL);
         WritePin(&loader->m_ResetPin, HIGH);
         nanosleep(&ts, NULL);
@@ -416,15 +417,17 @@ uint32_t ReadBits(struct CSWDLoader* loader, unsigned nBitCount) {
     return nBits;
 }
 
-#pragma GCC push_options
-#pragma GCC optimize("O0")
 static void delay_nanos(uint32_t n) {
-    n /= 2;
-    while (n) {
-        n--;
-    }
+    n *= 1;
+    struct timespec start, now;
+    clock_gettime(CLOCK_REALTIME, &start);
+    uint32_t delta_ns;
+    do {
+        clock_gettime(CLOCK_REALTIME, &now);
+        delta_ns = (now.tv_sec - start.tv_sec) * 1000000000 + now.tv_nsec -
+                   start.tv_nsec;
+    } while (delta_ns < n);
 }
-#pragma GCC pop_options
 
 void WriteClock(struct CSWDLoader* loader) {
     WritePin(&loader->m_ClockPin, LOW);
